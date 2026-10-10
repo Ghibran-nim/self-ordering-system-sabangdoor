@@ -1,0 +1,81 @@
+.menu-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 18px;
+    width: 100%;
+    max-width: 600px;
+}
+.menu-box {
+    background-color: #FFFFFF;
+    border: 1px solid #FFE8D2;
+    border-radius: 16px;
+    padding: 20px 10px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.card-menu {
+    width: 70%;
+    height: 80%;
+    background-color: #FFFFFF;
+    border: 1.5px solid #FFE8E0;
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    outline: 1.5px solid #FFE8D6;
+}
+
+.card-img { /* Foto Makanan */
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.card-body { /* Info Makanan*/
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.card-title { /* Nama Makanan */
+    font-size: 21px;
+    margin-bottom: -6px;
+    font-weight: bold;
+    color: #172033;
+}
+
+.variant { /* Varian Makanan */
+    font-size: 13px;
+    margin-bottom: -6px;
+    color: #738095;
+    font-weight: 500;
+}
+
+.price { /* Harga Makanan */
+    font-size: 15px;
+    margin-bottom: 7px;
+    font-weight: bold;
+    color: #D72C2C;
+}
+
+.btn-pilih {
+    width: 100%;
+    height: 25%;
+    background-color: #EF4444;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-pilih:active {
+    background-color: #D32F2F;
+}
