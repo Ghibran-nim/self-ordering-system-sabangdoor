@@ -86,7 +86,7 @@ body {
 .outlet-title {
     font-size: 13px;
     font-weight: 700;
-    color: #e63946;
+    color: #D72C2C;
     letter-spacing: 0.5px;
 }
 
@@ -436,11 +436,11 @@ body {
 .total-price {
     font-size: 18px;
     font-weight: 700;
-    color: #ff4742;
+    color: #D72C2C;
 }
 
 .cart-btn {
-    background-color: #ff4742;
+    background-color: #EF4444;
     color: #ffffff;
     border: none;
     border-radius: 8px;
