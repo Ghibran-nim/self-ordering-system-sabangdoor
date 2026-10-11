@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Menu - Dimsum Aja</title>
+    <link rel="stylesheet" href="style-detail-menu.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="mobile-container">
+    <!-- Header -->
+    <div class="header">
+        <button class="back-btn" onclick="history.back()"><i class="fa-solid fa-chevron-left"></i></button>
+        <h1>Detail menu</h1>
+        <div class="header-space"></div>
+    </div>
+
+    <!-- Outlet Info -->
+    <div class="outlet-info">
+        <div class="outlet-row">
+            <span class="outlet-title">SABANGDOR</span>
+            <span class="outlet-action">03 • Pilih porsi</span>
+        </div>
+        <p class="outlet-desc">Pesan dan ambil di outlet</p>
+    </div>
+
+    <!-- Content Body -->
+    <div class="content-body">
+        <!-- Product Image / Banner -->
+        <div class="product-banner">
+            <div class="yellow-circle"></div>
+            <div class="image-wrapper">
+                <img src="https://images.unsplash.com/photo-1496116218417-1a781b1c416c?auto=format&fit=crop&w=600&q=80" alt="Dimsum Aja">
+            </div>
+        </div>
+
+        <!-- Product Title & Desc -->
+        <div class="product-info">
+            <h2>Dimsum Aja</h2>
+            <p>Dimsum kukus original khas Sabangdor dengan olahan daging ayam lembut dan gurih.</p>
+        </div>
+
+        <!-- Pilih Ukuran Porsi -->
+        <div class="section-card">
+            <h3>Pilih ukuran porsi</h3>
+            <div class="size-options">
+                <div class="size-box">
+                    <span class="size-name">S</span>
+                    <span class="size-pcs">3 pcs</span>
+                    <span class="size-price">Rp10.000</span>
+                </div>
+                <div class="size-box active">
+                    <span class="size-name">M</span>
+                    <span class="size-pcs">6 pcs</span>
+                    <span class="size-price">Rp18.000</span>
+                </div>
+                <div class="size-box">
+                    <span class="size-name">XL</span>
+                    <span class="size-pcs">16 pcs</span>
+                    <span class="size-price">Rp47.000</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tambahan Opsional -->
+        <div class="section-card">
+            <div class="optional-header">
+                <h3>Tambahan opsional</h3>
+                <span class="badge-free">Free Chilli Oil</span>
+            </div>
+            <p class="optional-subtitle">Chilli oil gratis sudah termasuk dalam porsi.</p>
+
+            <div class="addon-item">
+                <div class="addon-label">
+                    <span>Chilli Oil tambahan</span>
+                    <span class="addon-price">+Rp3.000</span>
+                </div>
+                <input type="checkbox" class="checkbox-custom">
+            </div>
+
+            <p class="addon-note">Chilli oil tambahan terpisah dari yang gratis.</p>
+        </div>
+
+        <!-- Jumlah Porsi -->
+        <div class="section-card">
+            <div class="qty-container">
+                <div class="qty-label-group">
+                    <h3>Jumlah porsi</h3>
+                    <div class="qty-controls">
+                        <button class="qty-btn minus"><i class="fa-solid fa-minus"></i></button>
+                        <span class="qty-value">1 porsi</span>
+                        <button class="qty-btn plus"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+                <span class="qty-pcs-info">6 pcs/porsi</span>
+            </div>
+        </div>
+
+        <!-- Catatan Opsional -->
+        <div class="section-card">
+            <h3>Catatan (opsional)</h3>
+            <div class="note-input-box">
+                <i class="fa-solid fa-pen"></i>
+                <input type="text" placeholder="Tulis catatan untuk menu ini">
+            </div>
+        </div>
+
+        <!-- Rincian Harga -->
+        <div class="section-card">
+            <h3>Rincian harga</h3>
+            <div class="price-row">
+                <span>Harga porsi</span>
+                <span>Rp18.000</span>
+            </div>
+            <div class="price-row total-sub">
+                <span>Subtotal × 1 porsi</span>
+                <span>Rp18.000</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Footer -->
+    <div class="sticky-footer">
+        <div class="footer-meta">
+            <span>1 porsi • 6 pcs</span>
+        </div>
+        <div class="footer-action-row">
+            <div class="total-label-group">
+                <span class="total-text">Total produk</span>
+                <span class="total-price">Rp18.000</span>
+            </div>
+            <button class="cart-btn">Tambah ke keranjang</button>
+        </div>
+        <div class="home-indicator"></div>
+    </div>
+</div>
+</body>
+</html>
