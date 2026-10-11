@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 
-    <style>
-        h2{
-            text-align: center;
-        }
-    </style>
+
 </head>
 <body>
-    <h2>SABANGDOR</h2>
+    <h2 style="text-align: center">SABANGDOR</h2>
 
     <h1>Mau makan apa hari ini?</h1>
     <p>Pilih beberapa menu favoritmu</p>
@@ -22,6 +22,27 @@
         <button class="category-makanan-button" onclick="filterMenu(event, 'mentai')">Dimsum Mentai</button>
         <button class="category-makanan-button" onclick="filterMenu(event, 'dimsum-aja')">Dimsum aja</button>
         <button class="category-makanan-button" onclick="filterMenu(event, 'bakpao')">Bakpao</button>
+    </div>
+    
+    <h2>Paling Rekomendasi</h2>
+    <!-- pilihan menu -->
+    <div class="menu-container">
+        <!-- Card 1 -->
+        <div class="card-menu">
+            <img src="img/mentai-cheese.jpg" alt="Mentai Cheese" class="card-img">
+            <h3 class="card-title">Mentai Cheese</h3>
+            <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+            <P class="price">Mulai Rp15.000</P>
+            <button class="btn-pilih">+ Pilih menu</button>
+        </div>
+        <!-- Card 2 -->
+        <div class="card-menu">
+            <img src="img/mentai-tanuki.jpg" alt="Mentai Tanuki" class="card-img">
+            <h3 class="card-title">Mentai Tanuki</h3>
+            <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+            <P class="price">Mulai Rp15.000</P>
+            <button class="btn-pilih">+ Pilih menu</button>
+        </div>
     </div>
 </body>
 </html>
