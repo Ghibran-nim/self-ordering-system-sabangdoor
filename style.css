@@ -436,7 +436,6 @@ body {
 .total-price {
     font-size: 18px;
     font-weight: 700;
-    Property: #ff4742;
     color: #ff4742;
 }
 
@@ -448,7 +447,6 @@ body {
     padding: 12px 24px;
     font-size: 14px;
     font-weight: 600;
-    cursor: container;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(255, 71, 66, 0.3);
     transition: background-color 0.2s;
