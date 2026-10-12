@@ -7,23 +7,57 @@
 }
 
 body {
-    background-color: #f5f5f5;
+    background-color: #f0f2f5;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
+    padding: 0;
+    margin: 0;
 }
 
+/* Responsive Mobile / Tablet Container */
 .mobile-container {
     width: 100%;
-    max-width: 414px;
+    max-width: 480px; /* Default smartphone max width (covers iPhone 14-18, modern & older Android) */
     background-color: #ffffff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     position: relative;
-    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    box-shadow: 0 0 25px rgba(0,0,0,0.08);
     padding-bottom: 120px;
+    margin: 0 auto;
+}
+
+/* Tablet & iPad View */
+@media (min-width: 600px) {
+    body {
+        padding: 20px 0;
+    }
+    .mobile-container {
+        max-width: 600px;
+        border-radius: 20px;
+        min-height: calc(100vh - 40px);
+        overflow: hidden;
+    }
+}
+
+/* Small / Older Android Screens (<= 360px) */
+@media (max-width: 360px) {
+    .content-body {
+        padding: 12px !important;
+        gap: 12px !important;
+    }
+    .product-info h2 {
+        font-size: 19px !important;
+    }
+    .size-name {
+        font-size: 14px !important;
+    }
+    .size-price {
+        font-size: 11px !important;
+    }
 }
 
 /* Header */
@@ -31,7 +65,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
+    padding: 14px 16px;
     background-color: #ffffff;
     position: sticky;
     top: 0;
@@ -86,7 +120,7 @@ body {
 .outlet-title {
     font-size: 13px;
     font-weight: 700;
-    color: #D72C2C;
+    color: #e63946;
     letter-spacing: 0.5px;
 }
 
@@ -120,6 +154,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+@media (min-width: 600px) {
+    .product-banner {
+        height: 220px;
+    }
 }
 
 .yellow-circle {
@@ -402,13 +442,19 @@ body {
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 414px;
+    max-width: 480px;
     background-color: #ffffff;
     box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
     padding: 12px 16px 20px 16px;
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
     z-index: 100;
+}
+
+@media (min-width: 600px) {
+    .sticky-footer {
+        max-width: 600px;
+    }
 }
 
 .footer-meta {
@@ -436,11 +482,11 @@ body {
 .total-price {
     font-size: 18px;
     font-weight: 700;
-    color: #D72C2C;
+    color: #ff4742;
 }
 
 .cart-btn {
-    background-color: #EF4444;
+    background-color: #ff4742;
     color: #ffffff;
     border: none;
     border-radius: 8px;
