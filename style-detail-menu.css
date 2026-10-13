@@ -19,7 +19,7 @@ body {
 /* Responsive Mobile / Tablet Container */
 .mobile-container {
     width: 100%;
-    max-width: 480px; /* Default smartphone max width (covers iPhone 14-18, modern & older Android) */
+    max-width: 480px;
     background-color: #ffffff;
     min-height: 100vh;
     display: flex;
@@ -83,11 +83,17 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: #fff2f2;
+    background-color: #FFF7ED;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background-color: #ffe8d6;
+    transform: scale(1.05);
 }
 
 .header h1 {
@@ -107,7 +113,7 @@ body {
 /* Outlet Info */
 .outlet-info {
     padding: 12px 16px;
-    background-color: #fffaf0;
+    background-color: #FFF7ED;
     border-bottom: 1px solid #ffeeba;
 }
 
@@ -141,6 +147,44 @@ body {
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+/* --- Kategori Menu / Kotak Lonjong (Pill Button) --- */
+.category-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.category-btn {
+    background-color: #ffffff;
+    color: #555;
+    border: 1.5px solid #e0e0e0;
+    padding: 8px 16px;
+    border-radius: 50px; /* Membuat sudut lonjong/kapsul */
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+}
+
+/* Efek Hover dan Active Tombol Kategori Lonjong */
+.category-btn:hover {
+    background-color: #fff2f2;
+    color: #ff4742;
+    border-color: #ff4742;
+    transform: translateY(-2px);
+}
+
+.category-btn.active {
+    background-color: #ff4742;
+    color: #ffffff;
+    border-color: #ff4742;
+    box-shadow: 0 4px 10px rgba(255, 71, 66, 0.25);
 }
 
 /* Product Banner */
@@ -233,6 +277,11 @@ body {
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.size-box:hover {
+    border-color: #ff4742;
+    background-color: #fff9f9;
 }
 
 .size-box.active {
@@ -365,6 +414,12 @@ body {
     justify-content: center;
     cursor: pointer;
     font-size: 11px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.qty-btn:hover {
+    opacity: 0.85;
+    transform: scale(1.1);
 }
 
 .qty-btn.minus {
@@ -508,4 +563,27 @@ body {
     background-color: #222;
     border-radius: 2px;
     margin: 16px auto 0 auto;
+}
+
+/* Styling tambahan untuk interaksi ukuran porsi */
+.size-box {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+}
+
+.size-box:hover {
+    border-color: #ff4742;
+    background-color: #fff9f9;
+}
+
+/* Saat porsi dikunci/dipilih */
+.size-box.active {
+    border-color: #ff4742 !important;
+    background-color: #fff2f2 !important;
+    box-shadow: 0 2px 8px rgba(255, 71, 66, 0.15);
 }
