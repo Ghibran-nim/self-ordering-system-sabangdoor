@@ -22,50 +22,145 @@
     <h1 class="page-title">Mau makan apa hari ini?</h1>
     <p class="page-subtitle">Pilih beberapa menu favoritmu, lalu ambil di outlet.</p>
 
-    <!-- Tombol Kategori -->
-    <div class="category-makanan">
-        <button class="category-makanan-button" onclick="filterMenu(event, 'rekomendasi')">Paling Rekomendasi</button>
-        <button class="category-makanan-button" onclick="filterMenu(event, 'mentai')">Dimsum Mentai</button>
-        <button class="category-makanan-button" onclick="filterMenu(event, 'dimsum-aja')">Dimsum aja</button>
-        <button class="category-makanan-button" onclick="filterMenu(event, 'bakpao')">Bakpao</button>
+ <!-- Tombol Kategori -->
+    <div id="category-container" class="category-makanan">
+        <button class="category-makanan-button active" onclick="pilihKategori(event, 'section-rekomendasi')">Paling Rekomendasi</button>
+        <button class="category-makanan-button" onclick="pilihKategori(event, 'section-mentai')">Dimsum Mentai</button>
+        <button class="category-makanan-button" onclick="pilihKategori(event, 'section-dimsum-aja')">Dimsum aja</button>
+        <button class="category-makanan-button" onclick="pilihKategori(event, 'section-bakpao')">Bakpao</button>
     </div>
     
-    <h2 class="section-title">Paling Rekomendasi</h2>
-    <p class="section-desc">Menu paling populer!!</p>
+    <!-- Paling Populer Section -->
+    <div id="section-rekomendasi" class="menu-section">
+        <h2 class="section-title">Paling Rekomendasi</h2>
+        <p class="section-desc">Menu paling populer!!</p>
 
-    <!-- Pilihan Menu (Grid Container) -->
-    <div class="menu-container">
+        <div class="menu-container">
         
         <!-- Card 1 -->
-        <div class="card-menu">
-            <img src="img/mentai-cheese.jpg" alt="Mentai Cheese" class="card-img">
-            <div class="card-content">
-                <h3 class="card-title">Mentai Cheese</h3>
-                <p class="variant">S/M/XL • 3/6/16 pcs</p>
-                <p class="price">Mulai Rp15.000</p>
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Cheese" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Mentai Cheese</h3>
+                    <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+                    <p class="price">Mulai Rp15.000</p>
+                </div>
+                <a href ="dimsum-mentai-cheese.html" class="btn-pilih">+ Pilih menu</a>
             </div>
-            <a href ="..." target="_blank">
-                <button class="btn-pilih" onclick="tambahKeKeranjang()">+ Pilih menu</button>
-            </a>
-        </div>
 
         <!-- Card 2 -->
-        <div class="card-menu">
-            <img src="img/mentai-tanuki.jpg" alt="Mentai Tanuki" class="card-img">
-            <div class="card-content">
-                <h3 class="card-title">Mentai Tanuki</h3>
-                <p class="variant">S/M/XL • 3/6/16 pcs</p>
-                <p class="price">Mulai Rp15.000</p>
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Tanuki" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Mentai Tanuki</h3>
+                    <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+                    <p class="price">Mulai Rp15.000</p>
+                </div>
+                <a href="dimsum-mentai-tanuki.html" class="btn-pilih">+ Pilih menu</a>
             </div>
-            <a href="..." target="_blank">
-                <button class="btn-pilih" onclick="tambahKeKeranjang()">+ Pilih menu</button>
-            </a>
         </div>
+    </div>
+    
+    <!-- Dimsum Mentai Section -->
+    <div id="section-mentai" class="menu-section">
+        <h2 class="section-title">Dimsum Mentai</h2>
+        <p class="section-desc">Dimsum Mentai • Free Chilli Oil</p>
 
+        <div class="menu-container">
+        
+            <!-- Card 3 -->
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Cheese" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Mentai Ori</h3>
+                    <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+                    <p class="price">Mulai Rp13.000</p>
+                </div>
+                <a href="dimsum-mentai-ori.html" class="btn-pilih">+ Pilih menu</a>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Tanuki" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Mentai Cheese</h3>
+                    <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+                    <p class="price">Mulai Rp15.000</p>
+                </div>
+                <a href="dimsum-mentai-cheese.html" class="btn-pilih">+ Pilih menu</a>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Tanuki" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Mentai Tanuki</h3>
+                    <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+                    <p class="price">Mulai Rp15.000</p>
+                </div>
+                <a href="dimsum-mentai-tanuki.html" class="btn-pilih">+ Pilih menu</a>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Tanuki" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Mentai Mix</h3>
+                    <p class="variant">M / XL • S tidak tersedia</p>
+                    <p class="price">Mulai Rp26.000</p>
+                </div>
+                <a href="dimsum-mentai-mix.html" class="btn-pilih">+ Pilih menu</a>
+            </div>
+        </div>
     </div>
 
-    <!-- Panel Keranjang (Awalnya tersembunyi) -->
-     <div id="cart-popup" class="cart-popup hidden">
+    <!-- Dimsum aja Section -->
+    <div id="section-dimsum-aja" class="menu-section">
+        <h2 class="section-title">Dimsum aja</h2>
+        <p class="section-desc"></p>
+
+        <div class="menu-container">
+
+            <!-- Card 7 -->
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Tanuki" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Dimsum aja</h3>
+                    <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+                    <p class="price">Mulai Rp26.000</p>
+                </div>
+                <a href="dimsum-aja.html" class="btn-pilih">+ Pilih menu</a>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Bakpao Section -->
+    <div id="section-bakpao" class="menu-section"> 
+        <h2 class="section-title">Bakpao</h2>
+        <p class="section-desc">5 varian • bebas campur dalam satu paket</p>
+
+        <div class="menu-container">
+            <!-- Card 7 -->
+            <div class="card-menu">
+                <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80" alt="Mentai Tanuki" class="card-img">
+                <div class="card-content">
+                    <h3 class="card-title">Bakpao</h3>
+                    <p class="variant">S / M / XL • 3 / 6 / 16 pcs</p>
+                    <p class="price">Mulai Rp26.000</p>
+                </div>
+                <a href="bakpao.html" class="btn-pilih">+ Pilih menu</a>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+    <!-- Panel Keranjang Popup -->
+    <div id="cart-popup" class="cart-popup hidden">
         <div class="cart-header">
             <div class="cart-wrapper">
                 <h3>Pesanan Saya</h3>
@@ -74,9 +169,9 @@
             <span class="hapus-semua" onclick="kosongkanKeranjang()">Hapus semua</span>
         </div>
 
-        <!-- Tempat menampung daftar item yang dipilih (nanti diisi otomatis oleh JS) -->
+        <!-- Tempat menampung daftar item yang dipilih -->
         <div id="cart-items-container">
-            <!-- nanti atur dari JS bagian detail makanan-->
+            <!-- Diisi dari JS -->
         </div>
 
         <div class="cart-divider"></div>
@@ -92,15 +187,14 @@
             <span id="cart-total-price">Rp0</span>
         </div>
 
-        <!-- Tombol cek keranjang (nanti page keranjang...) -->
-         <button class="btn-cek-keranjang" onclick="keHalamanKeranjang()">Cek Keranjang</button>
-     </div>  
+        <!-- Tombol Cek Keranjang -->
+        <button class="btn-cek-keranjang" onclick="keHalamanKeranjang()">Cek Keranjang</button>
+    </div> 
 
 </div>
 
-<!-- Hubungkan ke file script.js terpisah -->
-<!-- lanjut nanti-->
-<script src="script.js"></script>
+<!-- Hubungkan ke file script-menu-utama.js -->
+<script src="script-menu-utama.js"></script>
 
 </body>
 </html>

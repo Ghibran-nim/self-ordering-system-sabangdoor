@@ -23,6 +23,7 @@ body {
     position: relative;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
     padding: 24px 16px 130px 16px;
+    scroll-behavior: smooth; /* Membuat animasi gulir (scroll) jadi halus */
 }
 
 .main-header {
@@ -70,9 +71,10 @@ body {
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Ketika tombol aktif (berwarna merah) */
 .category-makanan-button.active {
     background-color: #EF4444;
     color: #ffffff;
@@ -103,13 +105,12 @@ body {
     background-color: #FFFFFF;
     border: 1.5px solid #FFE8D2;
     border-radius: 16px;
-    padding: 10px;
+    padding: 12px; /* Sesuaikan padding jadi 12px agar rapi */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    outline: 1.5px solid #FFE8D6;
+    height: 100%; /* Memastikan semua kartu tingginya seragam */
 }
-
 .card-img {
     width: 100%;
     height: 120px;
@@ -121,8 +122,9 @@ body {
 .card-content {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    margin-bottom: 10px;
+    gap: 4px;
+    flex-grow: 1; /* Membuat area teks mengisi ruang kosong secara fleksibel */
+    margin-bottom: 8px; /* Memberikan jarak aman antara teks harga dengan tombol di bawahnya */
 }
 
 .card-title {
@@ -155,6 +157,9 @@ body {
     font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    text-align: center;
+    text-decoration: none;
+    display: block;
 }
 
 .btn-pilih:active {
