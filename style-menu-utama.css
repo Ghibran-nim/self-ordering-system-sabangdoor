@@ -1,352 +1,391 @@
+:root {
+    --primary-red: #E11D48;
+    --dark-maroon: #2B1D19;
+    --bg-app: #F8F9FA;
+    --card-bg: #FFFFFF;
+    --text-main: #1E293B;
+    --text-muted: #64748B;
+    --border-line: #E2E8F0;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
-    background-color: #f4f6f8;
+    background-color: #0f172a;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     min-height: 100vh;
 }
 
 .mobile-container {
     width: 100%;
-    max-width: 414px;
-    background-color: #ffffff;
-    min-height: 100vh;
+    max-width: 480px;
+    height: 100vh;
+    background-color: var(--bg-app);
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
     position: relative;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
-    padding: 24px 16px 130px 16px;
-    scroll-behavior: smooth; /* Membuat animasi gulir (scroll) jadi halus */
+    box-shadow: 0 0 25px rgba(0,0,0,0.5);
+    padding: 16px;
 }
 
+/* Header & Typography */
 .main-header {
-    text-align: center;
     font-size: 18px;
-    font-weight: 700;
-    color: #111111;
-    letter-spacing: 1px;
-    margin-bottom: 24px;
+    font-weight: 800;
+    color: var(--primary-red);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
 }
 
 .page-title {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
-    color: #111111;
-    margin-bottom: 4px;
+    color: var(--text-main);
 }
 
 .page-subtitle {
-    font-size: 13px;
-    color: #738095;
-    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    margin-bottom: 12px;
 }
 
-.category-makanan {
+/* NAV TAB BAR KATEGORI (GAYA DARI SISI PENJUAL) */
+.nav-tab-bar {
     display: flex;
-    gap: 8px;
+    background-color: white;
+    border-bottom: 1px solid var(--border-line);
+    padding: 0;
+    margin-bottom: 16px;
     overflow-x: auto;
-    padding-bottom: 8px;
-    margin-bottom: 24px;
     scrollbar-width: none;
+    position: sticky;
+    top: -16px;
+    z-index: 99;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 12px;
+    padding-right: 12px;
 }
 
-.category-makanan::-webkit-scrollbar {
+.nav-tab-bar::-webkit-scrollbar {
     display: none;
 }
 
-.category-makanan-button {
-    background-color: #ffffff;
-    border: 1.5px solid #FFE8D2;
-    color: #334155;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
+.tab-item {
+    flex: 0 0 auto;
+    background: transparent;
+    border: none;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
 }
 
-/* Ketika tombol aktif (berwarna merah) */
-.category-makanan-button.active {
-    background-color: #EF4444;
-    color: #ffffff;
-    border-color: #EF4444;
+.tab-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.tab-item.active {
+    border-bottom: 3px solid var(--primary-red);
+}
+
+.tab-item.active .tab-label {
+    color: var(--primary-red);
+    font-weight: 700;
+}
+
+/* TAB SWITCHING SYSTEM */
+.menu-section {
+    display: none;
+}
+
+.menu-section.active {
+    display: block;
 }
 
 .section-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
-    color: #172033;
-    margin-bottom: 2px;
+    color: var(--text-main);
 }
 
 .section-desc {
     font-size: 12px;
-    color: #738095;
+    color: var(--text-muted);
     margin-bottom: 12px;
 }
 
 .menu-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 12px;
-    width: 100%;
 }
 
 .card-menu {
-    background-color: #FFFFFF;
-    border: 1.5px solid #FFE8D2;
-    border-radius: 16px;
-    padding: 12px; /* Sesuaikan padding jadi 12px agar rapi */
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%; /* Memastikan semua kartu tingginya seragam */
-}
-.card-img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
+    background-color: var(--card-bg);
     border-radius: 12px;
-    margin-bottom: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-line);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    position: relative;
+}
+
+.card-img {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 8px;
 }
 
 .card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex-grow: 1; /* Membuat area teks mengisi ruang kosong secara fleksibel */
-    margin-bottom: 8px; /* Memberikan jarak aman antara teks harga dengan tombol di bawahnya */
+    flex: 1;
 }
 
 .card-title {
-    font-size: 15px;
-    font-weight: bold;
-    color: #172033;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
 }
 
 .variant {
     font-size: 11px;
-    color: #738095;
-    font-weight: 500;
+    color: var(--text-muted);
+    margin: 2px 0;
 }
 
 .price {
     font-size: 13px;
-    font-weight: bold;
-    color: #D72C2C;
-    margin-top: 2px;
+    font-weight: 700;
+    color: var(--primary-red);
 }
 
 .btn-pilih {
-    width: 100%;
-    padding: 8px 0;
-    background-color: #EF4444;
-    color: #FFFFFF;
-    border: none;
-    border-radius: 10px;
+    background-color: #FEF2F2;
+    color: var(--primary-red);
+    padding: 6px 12px;
+    border-radius: 8px;
     font-size: 12px;
     font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    text-align: center;
     text-decoration: none;
-    display: block;
+    display: inline-block;
+    transition: background 0.2s;
 }
 
-.btn-pilih:active {
-    background-color: #D32F2F;
+.btn-pilih:hover {
+    background-color: var(--primary-red);
+    color: white;
 }
 
-.hidden {
-    display: none !important;
-}
-
-/* === POPUP KERANJANG DI BAWAH === */
+/* ANIMASI & POPUP KERANJANG */
 .cart-popup {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 414px;
-    background-color: #ffffff;
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    padding: 20px 16px 24px 16px;
-    box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.12);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    z-index: 99;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 -6px 25px rgba(0,0,0,0.18);
+    z-index: 1000;
+    transform: translateY(100%);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.cart-popup.show-smooth {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.cart-popup.hidden {
+    display: none;
 }
 
 .cart-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 12px;
 }
 
-.cart-title-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.cart-header h3 {
-    font-size: 16px;
+.cart-wrapper h3 {
+    font-size: 15px;
     font-weight: 700;
-    color: #111111;
 }
 
 .badge-menu {
-    background-color: #EF4444;
-    color: #ffffff;
     font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 12px;
+    color: var(--primary-red);
+    font-weight: 600;
 }
 
 .hapus-semua {
     font-size: 12px;
-    color: #94A3B8;
+    color: var(--text-muted);
     cursor: pointer;
+}
+
+#cart-items-container {
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .cart-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border-line);
 }
 
-.item-left {
+.cart-item-left {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
+    flex: 1;
 }
 
-.item-img-placeholder {
-    width: 50px;
-    height: 50px;
-    background-color: #E2E8F0;
-    border-radius: 10px;
-    font-size: 10px;
-    color: #64748B;
+.cart-item-img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.cart-item-placeholder {
+    width: 48px;
+    height: 48px;
+    background: #E2E8F0;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
+    font-size: 10px;
+    color: var(--text-muted);
 }
 
-.item-detail h4 {
-    font-size: 14px;
-    font-weight: 700;
-    color: #111111;
+.cart-item-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.item-variant {
-    font-size: 11px;
-    color: #64748B;
-}
-
-.item-price {
+.cart-item-title {
     font-size: 13px;
     font-weight: 700;
-    color: #EF4444;
-    margin-top: 2px;
+    color: var(--text-main);
 }
 
-.item-counter {
+.cart-item-variant {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* FORMAT CATATAN RAPI PADA BARIS BARU */
+.item-catatan {
+    font-size: 11px;
+    color: var(--primary-red);
+    font-weight: 600;
+    margin-top: 1px;
+    margin-bottom: 2px;
+}
+
+.cart-item-price {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary-red);
+}
+
+/* TOMBOL (+ / -) UBAH QTY DI POPUP KERANJANG */
+.cart-item-counter {
     display: flex;
     align-items: center;
     gap: 8px;
-    border: 1.5px solid #E2E8F0;
-    border-radius: 10px;
+    background: #F1F5F9;
     padding: 4px 8px;
+    border-radius: 8px;
 }
 
 .cnt-btn {
-    background: none;
-    border: 1px solid #CBD5E1;
-    color: #EF4444;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 6px;
-    font-weight: bold;
+    border: none;
+    background: white;
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 14px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .cnt-btn.plus {
-    background-color: #EF4444;
-    color: #ffffff;
-    border: none;
+    background: var(--primary-red);
+    color: white;
 }
 
-.item-counter span {
-    font-size: 13px;
+.cnt-num {
+    font-size: 12px;
     font-weight: 700;
-    color: #111111;
-    width: 12px;
+    min-width: 16px;
     text-align: center;
 }
 
 .cart-divider {
-    border-bottom: 1px dashed #E2E8F0;
-    margin: 4px 0;
+    height: 1px;
+    background: var(--border-line);
+    margin: 10px 0;
 }
 
-.cart-subtotal {
+.cart-subtotal, .cart-total-row {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    color: #64748B;
+    font-size: 13px;
+    margin-bottom: 6px;
 }
 
 .cart-total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-}
-
-.total-label {
-    font-size: 14px;
-    font-weight: 700;
-    color: #111111;
-}
-
-.total-price {
-    font-size: 16px;
-    font-weight: 700;
-    color: #EF4444;
+    font-weight: 800;
+    color: var(--text-main);
+    font-size: 15px;
 }
 
 .btn-cek-keranjang {
     width: 100%;
-    padding: 12px 0;
-    background-color: #EF4444;
-    color: #FFFFFF;
+    padding: 12px;
+    background-color: var(--primary-red);
+    color: white;
     border: none;
-    border-radius: 12px;
-    font-size: 14px;
+    border-radius: 10px;
     font-weight: 700;
+    font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.btn-cek-keranjang:active {
-    background-color: #D32F2F;
+    margin-top: 10px;
 }
