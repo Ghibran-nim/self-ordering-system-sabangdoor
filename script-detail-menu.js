@@ -305,3 +305,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     render();
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    const backBtn = document.querySelector('.back-btn');
+    if (!backBtn) return;
+
+    backBtn.addEventListener('click', function () {
+        const cameFromSameSite = document.referrer &&
+            new URL(document.referrer).origin === window.location.origin;
+
+        if (window.history.length > 1 && cameFromSameSite) {
+            window.history.back();
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+});
