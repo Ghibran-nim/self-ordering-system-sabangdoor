@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Menu - Bakpao</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style-detail-menu.css">
+    <link rel="stylesheet" href="style-detail-bakpao.css">
+</head>
+<body>
+<div class="mobile-container">
+    <div class="header">
+        <button class="back-btn" aria-label="Kembali" onclick="history.back()"><i class="fa-solid fa-chevron-left"></i></button>
+        <h1>Detail menu</h1>
+        <div class="header-space"></div>
+    </div>
+
+    <div class="outlet-info">
+        <div class="outlet-row">
+            <span class="outlet-title">SABANGDOR</span>
+            <span class="outlet-action">Pilih bakpao</span>
+        </div>
+        <p class="outlet-desc">Pesan dan ambil di outlet</p>
+    </div>
+
+    <div class="content-body">
+        <div class="product-banner">
+            <div class="image-wrapper">
+                <img src="https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80" alt="Bakpao" onerror="this.style.visibility='hidden'">
+            </div>
+        </div>
+
+        <div class="product-info">
+            <h2>Bakpao</h2>
+            <p>5 varian, semua Rp7.000 per pcs. Bebas campur varian dalam satu pesanan.</p>
+        </div>
+
+        <!-- Harga paket -->
+        <div class="section-card">
+            <h3>Harga paket</h3>
+            <div class="size-options" id="package-info">
+                <div class="size-box info-only">
+                    <span class="size-name">1 pcs</span>
+                    <span class="size-price">Rp7.000</span>
+                </div>
+                <div class="size-box info-only">
+                    <span class="size-name">3 pcs</span>
+                    <span class="size-price">Rp20.000</span>
+                </div>
+                <div class="size-box info-only">
+                    <span class="size-name">6 pcs</span>
+                    <span class="size-price">Rp36.000</span>
+                </div>
+            </div>
+            <p class="addon-note">Harga otomatis dihitung paling hemat dari kombinasi paket 6, 3, dan 1 pcs.</p>
+        </div>
+
+        <!-- Pilih varian -->
+        <div class="section-card">
+            <h3>Pilih varian &amp; jumlah</h3>
+
+            <div class="variant-item" data-name="Salted Egg">
+                <div class="variant-thumb">S</div>
+                <span class="variant-name">Salted Egg</span>
+                <div class="qty-controls">
+                    <button class="qty-btn minus" aria-label="Kurangi Salted Egg"><i class="fa-solid fa-minus"></i></button>
+                    <span class="qty-value">0</span>
+                    <button class="qty-btn plus" aria-label="Tambah Salted Egg"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="variant-item" data-name="Kacang Tanah">
+                <div class="variant-thumb">K</div>
+                <span class="variant-name">Kacang Tanah</span>
+                <div class="qty-controls">
+                    <button class="qty-btn minus" aria-label="Kurangi Kacang Tanah"><i class="fa-solid fa-minus"></i></button>
+                    <span class="qty-value">0</span>
+                    <button class="qty-btn plus" aria-label="Tambah Kacang Tanah"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="variant-item" data-name="Ayam Casio">
+                <div class="variant-thumb">A</div>
+                <span class="variant-name">Ayam Casio</span>
+                <div class="qty-controls">
+                    <button class="qty-btn minus" aria-label="Kurangi Ayam Casio"><i class="fa-solid fa-minus"></i></button>
+                    <span class="qty-value">0</span>
+                    <button class="qty-btn plus" aria-label="Tambah Ayam Casio"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="variant-item" data-name="Coklat Lumer">
+                <div class="variant-thumb">C</div>
+                <span class="variant-name">Coklat Lumer</span>
+                <div class="qty-controls">
+                    <button class="qty-btn minus" aria-label="Kurangi Coklat Lumer"><i class="fa-solid fa-minus"></i></button>
+                    <span class="qty-value">0</span>
+                    <button class="qty-btn plus" aria-label="Tambah Coklat Lumer"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="variant-item" data-name="Keju Susu">
+                <div class="variant-thumb">K</div>
+                <span class="variant-name">Keju Susu</span>
+                <div class="qty-controls">
+                    <button class="qty-btn minus" aria-label="Kurangi Keju Susu"><i class="fa-solid fa-minus"></i></button>
+                    <span class="qty-value">0</span>
+                    <button class="qty-btn plus" aria-label="Tambah Keju Susu"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h3>Catatan (opsional)</h3>
+            <div class="note-input-box">
+                <i class="fa-solid fa-pen"></i>
+                <input type="text" placeholder="Tulis catatan untuk menu ini">
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h3>Rincian harga</h3>
+            <div id="price-breakdown">
+                <p class="addon-note">Belum ada bakpao dipilih.</p>
+            </div>
+            <div class="price-row total-sub">
+                <span>Subtotal</span>
+                <span id="subtotal-text">Rp0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-footer">
+        <div class="footer-meta">
+            <span id="footer-meta-text">Belum ada bakpao dipilih</span>
+        </div>
+        <div class="footer-action-row">
+            <div class="total-label-group">
+                <span class="total-text">Total produk</span>
+                <span class="total-price">Rp0</span>
+            </div>
+            <button class="cart-btn" disabled>Tambah ke keranjang</button>
+        </div>
+    </div>
+</div>
+
+<script src="script-detail-menu.js"></script>
+</body>
+</html>

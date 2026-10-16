@@ -179,3 +179,129 @@ if (cartBtn) {
     });
 }
 });
+
+//bakpao
+document.addEventListener('DOMContentLoaded', function () {
+    // Harga paket (sesuai menu): pcs -> harga
+    const PACKS = [
+        { pcs: 6, price: 36000 },
+        { pcs: 3, price: 20000 },
+        { pcs: 1, price: 7000 }
+    ];
+
+    const variantItems = document.querySelectorAll('.variant-item');
+    const breakdownEl = document.getElementById('price-breakdown');
+    const subtotalEl = document.getElementById('subtotal-text');
+    const totalPriceEl = document.querySelector('.total-price');
+    const footerMetaEl = document.getElementById('footer-meta-text');
+    const cartBtn = document.querySelector('.cart-btn');
+
+    const qty = {};
+    variantItems.forEach(item => { qty[item.dataset.name] = 0; });
+
+    function formatRupiah(n) {
+        return 'Rp' + n.toLocaleString('id-ID');
+    }
+
+    // Hitung kombinasi paket termurah untuk n pcs (DP)
+    function bestPrice(n) {
+        const cost = [0];
+        const choice = [null];
+        for (let i = 1; i <= n; i++) {
+            cost[i] = Infinity;
+            PACKS.forEach(p => {
+                if (i >= p.pcs && cost[i - p.pcs] + p.price < cost[i]) {
+                    cost[i] = cost[i - p.pcs] + p.price;
+                    choice[i] = p;
+                }
+            });
+        }
+        const used = {};
+        let i = n;
+        while (i > 0) {
+            const p = choice[i];
+            used[p.pcs] = (used[p.pcs] || 0) + 1;
+            i -= p.pcs;
+        }
+        return { total: cost[n], used };
+    }
+
+    function render() {
+        let totalPcs = 0;
+        variantItems.forEach(item => {
+            const q = qty[item.dataset.name];
+            totalPcs += q;
+            item.querySelector('.qty-value').innerText = q;
+            item.querySelector('.minus').disabled = q === 0;
+            item.classList.toggle('selected', q > 0);
+        });
+
+        if (totalPcs === 0) {
+            breakdownEl.innerHTML = '<p class="addon-note">Belum ada bakpao dipilih.</p>';
+            subtotalEl.innerText = formatRupiah(0);
+            totalPriceEl.innerText = formatRupiah(0);
+            footerMetaEl.innerText = 'Belum ada bakpao dipilih';
+            cartBtn.disabled = true;
+            return;
+        }
+
+        const { total, used } = bestPrice(totalPcs);
+
+        let html = '';
+        PACKS.forEach(p => {
+            if (used[p.pcs]) {
+                html += `<div class="price-row"><span>Paket ${p.pcs} pcs × ${used[p.pcs]}</span><span>${formatRupiah(p.price * used[p.pcs])}</span></div>`;
+            }
+        });
+        breakdownEl.innerHTML = html;
+
+        subtotalEl.innerText = formatRupiah(total);
+        totalPriceEl.innerText = formatRupiah(total);
+        footerMetaEl.innerText = `${totalPcs} pcs bakpao`;
+        cartBtn.disabled = false;
+    }
+
+    variantItems.forEach(item => {
+        const name = item.dataset.name;
+        item.querySelector('.plus').addEventListener('click', () => {
+            qty[name]++;
+            render();
+        });
+        item.querySelector('.minus').addEventListener('click', () => {
+            if (qty[name] > 0) {
+                qty[name]--;
+                render();
+            }
+        });
+    });
+
+    cartBtn.addEventListener('click', function () {
+        const picked = Object.keys(qty).filter(n => qty[n] > 0);
+        if (picked.length === 0) return;
+
+        const totalPcs = picked.reduce((s, n) => s + qty[n], 0);
+        const varian = picked.map(n => `${qty[n]}x ${n}`).join(', ');
+        const totalText = totalPriceEl.innerText;
+        const imgEl = document.querySelector('.product-banner img');
+        const catatan = document.querySelector('.note-input-box input').value.trim();
+
+        const itemBaru = {
+            nama: 'Bakpao',
+            varian: `${totalPcs} pcs: ${varian}`,
+            catatan: catatan,
+            qty: 1,
+            harga: parseInt(totalText.replace(/[^0-9]/g, ''), 10) || 0,
+            hargaFormatted: totalText,
+            imgSrc: imgEl ? imgEl.src : ''
+        };
+
+        const keranjang = JSON.parse(localStorage.getItem('sabangdor_cart')) || [];
+        keranjang.push(itemBaru);
+        localStorage.setItem('sabangdor_cart', JSON.stringify(keranjang));
+        localStorage.setItem('buka_popup_keranjang', 'true');
+
+        window.location.href = 'index.html';
+    });
+
+    render();
+});

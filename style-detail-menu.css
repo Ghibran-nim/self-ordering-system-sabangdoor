@@ -271,3 +271,42 @@ button:focus-visible, input:focus-visible, .size-box:focus-visible {
     outline: 2px solid var(--primary-red);
     outline-offset: 2px;
 }
+
+.size-box.info-only { cursor: default; background-color: var(--red-tint); border-color: var(--red-tint); }
+.size-box.info-only:hover { border-color: var(--red-tint); }
+.size-box.info-only .size-name { margin-bottom: 4px; }
+
+.variant-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border-line);
+}
+.variant-item:last-child { border-bottom: none; padding-bottom: 0; }
+.variant-item:first-of-type { padding-top: 0; }
+
+.variant-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background-color: var(--red-tint);
+    color: var(--primary-red);
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.variant-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.variant-item.selected .variant-thumb { background-color: var(--primary-red); color: #fff; }
+.variant-item .qty-value { min-width: 24px; }
+.variant-item .qty-btn.minus:disabled { opacity: 0.4; cursor: default; }
+
+.cart-btn:disabled { background-color: #CBD5E1; cursor: not-allowed; opacity: 1; }
