@@ -1,7 +1,3 @@
-/**
- * File: js/script-penjual.js
- * Perbaikan Utama: Smart rendering agar interval tidak menghancurkan elemen input saat kasir mengetik di HP/mobile.
- */
 
 const QRIS_STORAGE_KEY = "sabangdor_custom_qris";
 
@@ -16,9 +12,48 @@ const masterMenuSabangdor = [
 
 let currentSec = 'dashboard';
 let activeKanbanFilter = 'proses-masak';
-let lastOrdersHash = ""; // Untuk mendeteksi perubahan data pesanan
+let pesananSupabase = [];
+
+// ==========================================
+// AUTENTIKASI SUPABASE & INITIALIZATION
+// ==========================================
+async function checkAuth() {
+    if (typeof supabaseClient === 'undefined') return;
+
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            window.location.href = '../login-pegawai.html';
+        }
+    } catch (err) {
+        console.error("Gagal memeriksa autentikasi:", err);
+        window.location.href = '../login-pegawai.html';
+    }
+}
+
+async function handleLogout() {
+    try {
+        if (typeof supabaseClient !== 'undefined') {
+            await supabaseClient.auth.signOut();
+        }
+        localStorage.removeItem('pegawai_session');
+        window.location.href = '../login-pegawai.html';
+    } catch (err) {
+        console.error('Logout error:', err);
+        window.location.href = '../login-pegawai.html';
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Debug: pastikan dashboard terhubung ke project Supabase yang benar
+    if (typeof supabaseClient !== 'undefined') {
+        console.log("Supabase URL yang dipakai dashboard:", supabaseClient.supabaseUrl);
+    } else {
+        console.error("supabaseClient tidak ditemukan! Cek file config Supabase.");
+    }
+
+    checkAuth();
+
     let savedMenu = JSON.parse(localStorage.getItem('sabangdor_menu_status'));
     if (!savedMenu || savedMenu.length !== masterMenuSabangdor.length) {
         localStorage.setItem('sabangdor_menu_status', JSON.stringify(masterMenuSabangdor));
@@ -26,29 +61,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
     navigate('dashboard', document.querySelectorAll('.tab-item')[0]);
 
-    // Interval rutin 2 detik untuk membaca pesanan baru (hanya render jika ada perubahan data)
+    // Interval rutin 3 detik untuk fetch data pesanan dari Supabase
     setInterval(() => {
         checkAndRenderAuto();
-    }, 2000);
+    }, 3000);
 });
 
-function checkAndRenderAuto() {
-    // Jangan re-render jika kasir sedang aktif mengetik di kolom input apapun
+async function fetchPesananDariSupabase() {
+    if (typeof supabaseClient === 'undefined') return [];
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .select(`
+                id_order,
+                nomor_antrean,
+                nama_pembeli,
+                tipe_pembayaran,
+                status_pembayaran,
+                status_pesanan,
+                total_harga,
+                created_at,
+                order_items (
+                    id_detail,
+                    jumlah,
+                    subtotal,
+                    menus ( nama_dimsum )
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Gagal mengambil data pesanan dari Supabase:", error.message);
+            return [];
+        }
+
+        return data.map(order => {
+            let statusLokal = 'Menunggu Tunai';
+            if (order.status_pembayaran === 'lunas' && order.status_pesanan !== 'selesai') {
+                statusLokal = 'Proses Masak';
+            } else if (order.status_pesanan === 'selesai') {
+                statusLokal = 'Selesai & Disajikan';
+            }
+
+            return {
+                db_id_order: order.id_order,
+                idOrder: `ANT-${String(order.nomor_antrean).padStart(2, '0')}`,
+                nomorAntrean: order.nomor_antrean,
+                namaPelanggan: order.nama_pembeli,
+                metodeBayar: order.tipe_pembayaran ? order.tipe_pembayaran.toUpperCase() : 'TUNAI',
+                totalHarga: Number(order.total_harga) || 0,
+                totalHargaFormatted: `Rp${(Number(order.total_harga) || 0).toLocaleString('id-ID')}`,
+                status: statusLokal,
+                statusPembayaranDb: order.status_pembayaran,
+                statusPesananDb: order.status_pesanan,
+                waktu: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                tanggal: new Date(order.created_at).toLocaleDateString('id-ID'),
+                items: order.order_items ? order.order_items.map(item => ({
+                    nama: item.menus ? item.menus.nama_dimsum : 'Menu Dimsum',
+                    qty: item.jumlah,
+                    totalHargaItem: Number(item.subtotal) || 0
+                })) : []
+            };
+        });
+
+    } catch (err) {
+        console.error("Error Fetching Supabase:", err);
+        return [];
+    }
+}
+
+async function checkAndRenderAuto() {
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
         return;
     }
-
-    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
-    let riwayat = JSON.parse(localStorage.getItem('sabangdor_riwayat_transaksi')) || [];
-
-    // Buat penanda status (hash) sederhana
-    let currentHash = JSON.stringify(semuaPesanan.map(p => ({ id: p.idOrder, st: p.status }))) + "_" + riwayat.length;
-
-    // Hanya panggil render jika ada pesanan baru/berubah status
-    if (currentHash !== lastOrdersHash) {
-        lastOrdersHash = currentHash;
-        renderCurrentSection(true);
-    }
+    await renderCurrentSection();
 }
 
 function navigate(secKey, el) {
@@ -76,11 +163,14 @@ function navigate(secKey, el) {
     renderCurrentSection(true);
 }
 
-function renderCurrentSection(force = false) {
-    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
-    let riwayat = JSON.parse(localStorage.getItem('sabangdor_riwayat_transaksi')) || [];
+async function renderCurrentSection(force = false) {
+    pesananSupabase = await fetchPesananDariSupabase();
 
-    let pendingPay = semuaPesanan.filter(p => p.status === 'Menunggu Tunai' || p.status.includes('Lunas QRIS')).length;
+    let semuaPesanan = pesananSupabase;
+    // Riwayat = hanya pesanan yang benar-benar selesai
+    let riwayat = pesananSupabase.filter(p => p.statusPesananDb === 'selesai');
+
+    let pendingPay = semuaPesanan.filter(p => p.statusPembayaranDb === 'pending').length;
     const badgeEl = document.getElementById('badge-notif-bayar');
     if (badgeEl) {
         if (pendingPay > 0) {
@@ -175,12 +265,12 @@ function getItemSubtotal(i) {
     return 0;
 }
 
-// 2. VERIFIKASI PEMBAYARAN
+// 2. VERIFIKASI PEMBAYARAN & UPDATE SUPABASE
 function renderPembayaran(pesananList, force = false) {
     const container = document.getElementById('container-pembayaran');
     if (!container) return;
 
-    let pending = pesananList.filter(p => p.status === 'Menunggu Tunai' || p.status.includes('Lunas QRIS'));
+    let pending = pesananList.filter(p => p.statusPembayaranDb === 'pending');
 
     if (pending.length === 0) {
         container.innerHTML = `<div class="empty-info">Tidak ada pembayaran menunggu verifikasi.</div>`;
@@ -188,113 +278,127 @@ function renderPembayaran(pesananList, force = false) {
     }
 
     let html = '';
-    pesananList.forEach((order, index) => {
-        if (order.status === 'Menunggu Tunai' || order.status.includes('Lunas QRIS')) {
-            let itemList = order.items.map(i => {
-                const itemHarga = getItemSubtotal(i);
-                const varianTxt = i.varian ? ` <small style="color:var(--text-muted);">(${i.varian})</small>` : '';
-                const catatanTxt = i.catatan ? `<div class="item-catatan">Catatan: "${i.catatan}"</div>` : '';
-                
-                return `
-                    <li class="order-item-row">
-                        <div>
-                            <span><b>${i.qty || 1}x</b> ${i.nama}${varianTxt}</span>
-                            ${catatanTxt}
-                        </div>
-                        <b>Rp${itemHarga.toLocaleString('id-ID')}</b>
-                    </li>
-                `;
-            }).join('');
+    pending.forEach((order) => {
+        let itemList = order.items.map(i => {
+            const itemHarga = getItemSubtotal(i);
+            const varianTxt = i.varian ? ` <small style="color:var(--text-muted);">(${i.varian})</small>` : '';
+            const catatanTxt = i.catatan ? `<div class="item-catatan">Catatan: "${i.catatan}"</div>` : '';
 
-            const isTunai = order.metodeBayar === 'TUNAI' || order.metodeBayar === 'Tunai';
-            const valTunai = order.uangDiterima || '';
-            
-            let kembalianHtml = '';
-            if (valTunai && Number(valTunai) >= order.totalHarga) {
-                const k = Number(valTunai) - order.totalHarga;
-                kembalianHtml = `<div id="kembalianBox_${index}" class="kembalian-txt" style="color:var(--green-text);">Kembalian: Rp${k.toLocaleString('id-ID')}</div>`;
-            } else if (valTunai && Number(valTunai) < order.totalHarga) {
-                const kurang = order.totalHarga - Number(valTunai);
-                kembalianHtml = `<div id="kembalianBox_${index}" class="kembalian-txt" style="color:var(--primary-red);">Kurang: Rp${kurang.toLocaleString('id-ID')}</div>`;
-            } else {
-                kembalianHtml = `<div id="kembalianBox_${index}" class="kembalian-txt" style="display:none;"></div>`;
-            }
-
-            html += `
-                <div class="order-card-merchant">
-                    <div class="order-head">
-                        <span class="order-id-txt">#${order.idOrder} (${order.namaPelanggan})</span>
-                        <span class="order-badge-pay ${isTunai ? 'tag-cash' : 'tag-qris'}">${order.metodeBayar}</span>
+            return `
+                <li class="order-item-row">
+                    <div>
+                        <span><b>${i.qty || 1}x</b> ${i.nama}${varianTxt}</span>
+                        ${catatanTxt}
                     </div>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">
-                        ${order.waktu} WIB | Total Tagihan: <b style="color:var(--primary-red); font-size:0.85rem;">${order.totalHargaFormatted}</b>
-                    </div>
-                    
-                    <ul class="order-item-list">${itemList}</ul>
-                    
-                    ${isTunai ? `
-                        <div class="cash-input-box">
-                            <label for="inputBayar_${index}">💵 Uang Diterima dari Pembeli:</label>
-                            <input type="number" id="inputBayar_${index}" value="${valTunai}" placeholder="Ketik nominal tunai..." oninput="updateInputTunai(${index},${order.totalHarga}, this.value)">
-                            ${kembalianHtml}
-                        </div>
-                    ` : ''}
-
-                    <div class="btn-group">
-                        <button class="btn-primary-merchant" onclick="konfirmasiPembayaran(${index}, 'Proses Masak')">
-                            ${isTunai ? 'Terima Tunai & Kirim Dapur' : 'Verifikasi QRIS & Kirim Dapur'}
-                        </button>
-                        <button class="btn-outline-merchant" onclick="cetakStrukIndex(${index})">🖨️ Struk</button>
-                    </div>
-                </div>
+                    <b>Rp${itemHarga.toLocaleString('id-ID')}</b>
+                </li>
             `;
+        }).join('');
+
+        const isTunai = order.metodeBayar === 'CASH' || order.metodeBayar === 'TUNAI';
+        const valTunai = order.uangDiterima || '';
+
+        let kembalianHtml = '';
+        if (valTunai && Number(valTunai) >= order.totalHarga) {
+            const k = Number(valTunai) - order.totalHarga;
+            kembalianHtml = `<div id="kembalianBox_${order.db_id_order}" class="kembalian-txt" style="color:var(--green-text);">Kembalian: Rp${k.toLocaleString('id-ID')}</div>`;
+        } else if (valTunai && Number(valTunai) < order.totalHarga) {
+            const kurang = order.totalHarga - Number(valTunai);
+            kembalianHtml = `<div id="kembalianBox_${order.db_id_order}" class="kembalian-txt" style="color:var(--primary-red);">Kurang: Rp${kurang.toLocaleString('id-ID')}</div>`;
+        } else {
+            kembalianHtml = `<div id="kembalianBox_${order.db_id_order}" class="kembalian-txt" style="display:none;"></div>`;
         }
+
+        html += `
+            <div class="order-card-merchant">
+                <div class="order-head">
+                    <span class="order-id-txt">#${order.idOrder} (${order.namaPelanggan})</span>
+                    <span class="order-badge-pay ${isTunai ? 'tag-cash' : 'tag-qris'}">${order.metodeBayar}</span>
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">
+                    ${order.waktu} WIB | Total Tagihan: <b style="color:var(--primary-red); font-size:0.85rem;">${order.totalHargaFormatted}</b>
+                </div>
+                
+                <ul class="order-item-list">${itemList}</ul>
+                
+                ${isTunai ? `
+                    <div class="cash-input-box">
+                        <label for="inputBayar_${order.db_id_order}">💵 Uang Diterima dari Pembeli:</label>
+                        <input type="number" id="inputBayar_${order.db_id_order}" value="${valTunai}" placeholder="Ketik nominal tunai..." oninput="updateInputTunai(${order.db_id_order},${order.totalHarga}, this.value)">
+                        ${kembalianHtml}
+                    </div>
+                ` : ''}
+
+                <div class="btn-group">
+                    <button class="btn-primary-merchant" onclick="konfirmasiPembayaran(${order.db_id_order})">
+                        ${isTunai ? 'Terima Tunai & Kirim Dapur' : 'Verifikasi QRIS & Kirim Dapur'}
+                    </button>
+                    <button class="btn-outline-merchant" onclick="cetakStrukLangsungById(${order.db_id_order})">🖨️ Struk</button>
+                </div>
+            </div>
+        `;
     });
     container.innerHTML = html;
 }
 
-function updateInputTunai(index, totalHarga, value) {
-    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
-    if (semuaPesanan[index]) {
-        const valNum = Number(value) || 0;
-        semuaPesanan[index].uangDiterima = value;
-        semuaPesanan[index].kembalian = Math.max(0, valNum - totalHarga);
-        localStorage.setItem('sabangdor_semua_pesanan', JSON.stringify(semuaPesanan));
-
-        // Update teks kembalian secara langsung tanpa re-render HTML agar tidak mengganggu fokus keyboard HP
-        const boxEl = document.getElementById(`kembalianBox_${index}`);
-        if (boxEl) {
-            if (valNum >= totalHarga) {
-                boxEl.style.display = 'block';
-                boxEl.style.color = 'var(--green-text)';
-                boxEl.innerText = `Kembalian: Rp${(valNum - totalHarga).toLocaleString('id-ID')}`;
-            } else if (valNum > 0) {
-                boxEl.style.display = 'block';
-                boxEl.style.color = 'var(--primary-red)';
-                boxEl.innerText = `Kurang: Rp${(totalHarga - valNum).toLocaleString('id-ID')}`;
-            } else {
-                boxEl.style.display = 'none';
-            }
+function updateInputTunai(idOrder, totalHarga, value) {
+    const valNum = Number(value) || 0;
+    const boxEl = document.getElementById(`kembalianBox_${idOrder}`);
+    if (boxEl) {
+        if (valNum >= totalHarga) {
+            boxEl.style.display = 'block';
+            boxEl.style.color = 'var(--green-text)';
+            boxEl.innerText = `Kembalian: Rp${(valNum - totalHarga).toLocaleString('id-ID')}`;
+        } else if (valNum > 0) {
+            boxEl.style.display = 'block';
+            boxEl.style.color = 'var(--primary-red)';
+            boxEl.innerText = `Kurang: Rp${(totalHarga - valNum).toLocaleString('id-ID')}`;
+        } else {
+            boxEl.style.display = 'none';
         }
     }
 }
 
-function konfirmasiPembayaran(index, newStatus) {
-    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
-    
-    const inputEl = document.getElementById(`inputBayar_${index}`);
-    if (inputEl && inputEl.value) {
-        const bayar = Number(inputEl.value) || semuaPesanan[index].totalHarga;
-        semuaPesanan[index].uangDiterima = bayar;
-        semuaPesanan[index].kembalian = Math.max(0, bayar - semuaPesanan[index].totalHarga);
-    }
+async function konfirmasiPembayaran(dbIdOrder) {
+    if (typeof supabaseClient === 'undefined') return;
 
-    semuaPesanan[index].status = newStatus;
-    localStorage.setItem('sabangdor_semua_pesanan', JSON.stringify(semuaPesanan));
-    
-    // Reset hash agar langsung merefresh tampilan
-    lastOrdersHash = "";
-    renderCurrentSection(true);
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            alert("Session pegawai berakhir. Silakan login kembali.");
+            window.location.href = '../login-pegawai.html';
+            return;
+        }
+
+        // UPDATE KE TABEL ORDERS + .select() untuk memverifikasi baris yang berubah
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .update({
+                status_pembayaran: 'lunas',
+                status_pesanan: 'disiapkan'
+            })
+            .eq('id_order', dbIdOrder)
+            .select();
+
+        if (error) {
+            console.error("Gagal update status pembayaran:", error);
+            alert("Gagal memperbarui status: " + error.message);
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            console.warn("Update 0 baris. id_order:", dbIdOrder);
+            alert("Update tidak mengubah data apa pun. Cek RLS atau pastikan project Supabase sudah benar.");
+            return;
+        }
+
+        console.log(`Transaksi ID #${dbIdOrder} berhasil menjadi LUNAS:`, data[0]);
+        await renderCurrentSection(true);
+
+    } catch (err) {
+        console.error("Gagal update status pembayaran di Supabase:", err);
+        alert("Terjadi error: " + err.message);
+    }
 }
 
 // 3. DISPLAY KITCHEN
@@ -308,9 +412,9 @@ function switchKitchenTab(type, evt) {
 function renderKitchenDisplay(pesananList, riwayatList) {
     const container = document.getElementById('kanban-content-mobile');
     if (!container) return;
-    
-    let listProsesMasak = pesananList.filter(p => p.status === 'Proses Masak');
-    let listSelesai = riwayatList;
+
+    let listProsesMasak = pesananList.filter(p => p.statusPembayaranDb === 'lunas' && p.statusPesananDb !== 'selesai');
+    let listSelesai = pesananList.filter(p => p.statusPesananDb === 'selesai');
 
     const countProsesEl = document.getElementById('count-terkirim') || document.getElementById('count-proses-masak');
     const countSelesaiEl = document.getElementById('count-selesai');
@@ -331,19 +435,18 @@ function renderKitchenDisplay(pesananList, riwayatList) {
             const catatanTxt = i.catatan ? `<div class="item-catatan">Catatan: "${i.catatan}"</div>` : '';
             return `<li style="margin-bottom:6px;"><div><b>${i.qty || 1}x ${i.nama}${varianTxt}</b>${catatanTxt}</div></li>`;
         }).join('') : '';
-        
+
         html += `
             <div class="order-card-merchant">
                 <div class="order-head">
-                    <span class="order-id-txt">#${order.idOrder} - ${order.namaPelanggan}</span>
+                    <span class="order-id-txt">#${order.idOrder} (${order.namaPelanggan})</span>
                     <span style="font-size:0.75rem; color:var(--text-muted);">${order.waktu} WIB</span>
                 </div>
                 <ul class="order-item-list">${itemList}</ul>
         `;
 
         if (activeKanbanFilter === 'proses-masak') {
-            let realIndex = pesananList.findIndex(p => p.idOrder === order.idOrder);
-            html += `<button class="btn-primary-merchant" style="background:#3B82F6;" onclick="tandaiSelesaiDapur(${realIndex})">Selesai & Sajikan</button></div>`;
+            html += `<button class="btn-primary-merchant" style="background:#3B82F6;" onclick="tandaiSelesaiDapur(${order.db_id_order})">Selesai & Sajikan</button></div>`;
         } else {
             html += `<p style="font-size:0.8rem; color:var(--green-text); font-weight:800;">Status: Selesai & Disajikan</p></div>`;
         }
@@ -352,20 +455,43 @@ function renderKitchenDisplay(pesananList, riwayatList) {
     container.innerHTML = html;
 }
 
-function tandaiSelesaiDapur(index) {
-    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
-    let riwayat = JSON.parse(localStorage.getItem('sabangdor_riwayat_transaksi')) || [];
+async function tandaiSelesaiDapur(dbIdOrder) {
+    if (typeof supabaseClient === 'undefined') return;
 
-    if (semuaPesanan[index]) {
-        let selesai = semuaPesanan.splice(index, 1)[0];
-        selesai.status = 'Selesai & Disajikan';
-        riwayat.push(selesai);
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            window.location.href = '../login-pegawai.html';
+            return;
+        }
 
-        localStorage.setItem('sabangdor_semua_pesanan', JSON.stringify(semuaPesanan));
-        localStorage.setItem('sabangdor_riwayat_transaksi', JSON.stringify(riwayat));
-        
-        lastOrdersHash = "";
-        renderCurrentSection(true);
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .update({
+                status_pembayaran: 'lunas',
+                status_pesanan: 'selesai'
+            })
+            .eq('id_order', dbIdOrder)
+            .select();
+
+        if (error) {
+            console.error("Gagal update status selesai:", error);
+            alert("Gagal: " + error.message);
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            console.warn("Update 0 baris. id_order:", dbIdOrder);
+            alert("Update tidak mengubah data apa pun. Cek RLS atau project Supabase.");
+            return;
+        }
+
+        console.log(`Pesanan ID #${dbIdOrder} berhasil menjadi SELESAI:`, data[0]);
+        await renderCurrentSection(true);
+
+    } catch (err) {
+        console.error("Gagal update status selesai di Supabase:", err);
+        alert("Terjadi error: " + err.message);
     }
 }
 
@@ -396,7 +522,7 @@ function renderRiwayat(riwayatList) {
         filteredList = riwayatList.filter(item => item.tanggal === formattedSelectedDate);
     }
 
-    let totalOmzet = filteredList.reduce((sum, item) => sum + item.totalHarga, 0);
+    let totalOmzet = filteredList.reduce((sum, item) => sum + (item.totalHarga || 0), 0);
 
     if (banner) {
         let labelOmzet = formattedSelectedDate ? `Omzet Tanggal ${formattedSelectedDate}` : 'Total Omzet Keseluruhan';
@@ -414,16 +540,16 @@ function renderRiwayat(riwayatList) {
     }
 
     let html = '';
-    filteredList.slice().reverse().forEach((item) => {
+    filteredList.forEach((item) => {
         html += `
             <div class="order-card-merchant" style="flex-direction:row; justify-content:space-between; align-items:center;">
                 <div>
                     <div style="font-weight:800; font-size:0.85rem;">#${item.idOrder} (${item.namaPelanggan} - ${item.metodeBayar})</div>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">${item.tanggal} • ${item.waktu} WIB</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${item.tanggal} ${item.waktu} WIB</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <b style="color:var(--green-text); font-size:0.85rem;">${item.totalHargaFormatted}</b>
-                    <button class="btn-outline-merchant" style="padding:6px 10px; font-size:0.75rem;" onclick='cetakStrukLangsung(${JSON.stringify(item)})'>🖨️</button>
+                    <button class="btn-outline-merchant" style="padding:6px 10px; font-size:0.75rem;" onclick="cetakStrukLangsungById(${item.db_id_order})">🖨️</button>
                 </div>
             </div>
         `;
@@ -432,10 +558,10 @@ function renderRiwayat(riwayatList) {
 }
 
 // 5. CETAK STRUK PRINTER THERMAL (58mm)
-function cetakStrukIndex(index) {
-    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
-    if (semuaPesanan[index]) {
-        cetakStrukLangsung(semuaPesanan[index]);
+function cetakStrukLangsungById(dbIdOrder) {
+    const order = pesananSupabase.find(p => p.db_id_order === dbIdOrder);
+    if (order) {
+        cetakStrukLangsung(order);
     }
 }
 
@@ -457,18 +583,6 @@ function cetakStrukLangsung(order) {
             </tr>
         `;
     }).join('');
-
-    const tunaiVal = Number(order.uangDiterima) || 0;
-    const tunaiInfo = (tunaiVal > 0) ? `
-        <div style="display:flex; justify-content:space-between; margin-top:2px;">
-            <span>Tunai:</span>
-            <span>Rp${tunaiVal.toLocaleString('id-ID')}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-            <span>Kembali:</span>
-            <span>Rp${(order.kembalian || 0).toLocaleString('id-ID')}</span>
-        </div>
-    ` : '';
 
     const htmlContent = `
         <!DOCTYPE html>
@@ -520,7 +634,6 @@ function cetakStrukLangsung(order) {
                 <span>TOTAL:</span>
                 <span>${order.totalHargaFormatted}</span>
             </div>
-            ${tunaiInfo}
 
             <div class="divider"></div>
             
@@ -542,31 +655,3 @@ function cetakStrukLangsung(order) {
     printWindow.document.write(htmlContent);
     printWindow.document.close();
 }
-
-// Memeriksa autentikasi session
-async function checkAuth() {
-    if (typeof supabaseClient === 'undefined') return;
-
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) {
-        window.location.href = '../login-pegawai.html';
-    }
-}
-
-// Mengakhiri session login
-async function handleLogout() {
-    try {
-        if (typeof supabaseClient !== 'undefined') {
-            await supabaseClient.auth.signOut();
-        }
-        localStorage.removeItem('pegawai_session');
-        window.location.href = '../login-pegawai.html';
-    } catch (err) {
-        console.error('Logout error:', err);
-        window.location.href = '../login-pegawai.html';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
-});
