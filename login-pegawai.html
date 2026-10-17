@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SABANGDOR - Login Pegawai</title>
 
-    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Hubungkan ke file CSS Dashboard Utama milikmu -->
     <link rel="stylesheet" href="style-menu-utama.css">
 </head>
 <body>
@@ -22,23 +19,34 @@
     </div>
 
     <div class="login-card-box">
-        <form action="penjual-page/dashboard.html" method="POST">
+        <form id="loginForm">
             <div class="login-field-group">
-                <label for="username">Nama</label>
-                <input type="text" id="username" name="username" class="login-input-text" required autocomplete="off">
+                <label for="email">Email Pegawai</label>
+                <input type="email" id="email" class="login-input-text" placeholder="kasir@sabangdor.com" required autocomplete="off">
             </div>
 
             <div class="login-field-group">
                 <label for="password">Kata Sandi</label>
-                <input type="password" id="password" name="password" class="login-input-text" required>
+                <input type="password" id="password" class="login-input-text" required>
             </div>
 
-            <button type="submit" class="login-btn-submit">Masuk</button>
+            <p id="errorMessage" style="color: #ef4444; font-size: 12px; margin-bottom: 12px; display: none;"></p>
+
+            <button type="submit" id="btnSubmit" class="login-btn-submit">Masuk</button>
         </form>
     </div>
 
     <a href="index.html" class="login-btn-back">← Kembali ke Menu Utama</a>
 </div>
+
+<!-- 1. CDN Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- 2. Config Supabase -->
+<script src="penjual-page/config.js"></script>
+
+<!-- 3. Logic Login -->
+<script src="penjual-page/login.js"></script>
 
 </body>
 </html>
