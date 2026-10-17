@@ -80,5 +80,26 @@
 
     <!-- Script Khusus Penjual -->
     <script src="script-penjual.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            // Jika tidak ada session active (belum login), tendang balik ke login.html
+            if (!session) {
+                window.location.href = '../login.html';
+            }
+        }
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            window.location.href = '../login.html';
+        }
+
+        checkAuth();
+    </script>
 </body>
 </html>
