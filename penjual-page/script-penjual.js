@@ -161,7 +161,7 @@ function renderPembayaran(pesananList) {
                 const itemHarga = getItemSubtotal(i);
                 const varianTxt = i.varian ? ` <small style="color:#64748B;">(${i.varian})</small>` : '';
                 const catatanTxt = i.catatan ? `<div style="color:#E11D48; font-size:10.5px; font-weight:600;">Catatan: "${i.catatan}"</div>` : '';
-                
+
                 return `
                     <li style="padding:4px 0; border-bottom:1px dashed #f0f0f0;">
                         <div>
@@ -213,7 +213,7 @@ function switchKitchenTab(type, evt) {
 function renderKitchenDisplay(pesananList, riwayatList) {
     const container = document.getElementById('kanban-content-mobile');
     if (!container) return;
-    
+
     let listProsesMasak = pesananList.filter(p => p.status === 'Proses Masak');
     let listSelesai = riwayatList;
 
@@ -236,7 +236,7 @@ function renderKitchenDisplay(pesananList, riwayatList) {
             const catatanTxt = i.catatan ? `<div style="color:#E11D48; font-size:10.5px; font-weight:700;">Catatan: "${i.catatan}"</div>` : '';
             return `<li style="margin-bottom:6px;"><div><b>${i.qty || 1}x ${i.nama}${varianTxt}</b>${catatanTxt}</div></li>`;
         }).join('') : '';
-        
+
         html += `
             <div class="order-card-mobile">
                 <div class="order-card-head">
@@ -287,7 +287,7 @@ function renderRiwayat(riwayatList) {
     if (!container) return;
 
     let selectedDate = filterInput ? filterInput.value : ''; // Format dari input date: "YYYY-MM-DD"
-    
+
     // Konversi format tanggal input (YYYY-MM-DD) ke format lokal Indonesia (DD/MM/YYYY) agar cocok dengan data transaksi
     let formattedSelectedDate = '';
     if (selectedDate) {
@@ -335,3 +335,31 @@ function renderRiwayat(riwayatList) {
     });
     container.innerHTML = html;
 }
+
+// Memeriksa autentikasi session
+async function checkAuth() {
+    if (typeof supabaseClient === 'undefined') return;
+
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        window.location.href = '../login-pegawai.html';
+    }
+}
+
+// Mengakhiri session login
+async function handleLogout() {
+    try {
+        if (typeof supabaseClient !== 'undefined') {
+            await supabaseClient.auth.signOut();
+        }
+        localStorage.removeItem('pegawai_session');
+        window.location.href = '../login-pegawai.html';
+    } catch (err) {
+        console.error('Logout error:', err);
+        window.location.href = '../login-pegawai.html';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+});
