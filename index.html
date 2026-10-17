@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SABANGDOR</title>
-    
+
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,13 +16,8 @@
 <body>
 
 <div class="mobile-container">
-    <!-- Judul Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h2 class="main-header" style="margin: 0;">SABANGDOR</h2>
-        <a href="login-pegawai.html" style="font-size: 11px; color: #888; text-decoration: none; border: 1px solid #ddd; padding: 3px 8px; border-radius: 4px;">
-            🔒 Staff
-        </a>
-    </div>
+    <!-- Judul Header dengan ID Trigger -->
+    <h2 class="main-header" id="staff-trigger">SABANGDOR</h2>
 
     <h1 class="page-title">Mau makan apa hari ini?</h1>
     <p class="page-subtitle">Pilih beberapa menu favoritmu, lalu ambil di outlet.</p>
@@ -42,7 +37,7 @@
             <span class="tab-label">Bakpao</span>
         </button>
     </nav>
-    
+
     <!-- 1. Paling Populer Section -->
     <div id="section-rekomendasi" class="menu-section active">
         <h2 class="section-title">Paling Rekomendasi</h2>
@@ -72,7 +67,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- 2. Dimsum Mentai Section -->
     <div id="section-mentai" class="menu-section">
         <h2 class="section-title">Dimsum Mentai</h2>
@@ -145,7 +140,7 @@
     </div>
 
     <!-- 4. Bakpao Section -->
-    <div id="section-bakpao" class="menu-section"> 
+    <div id="section-bakpao" class="menu-section">
         <h2 class="section-title">Bakpao</h2>
         <p class="section-desc">5 varian • bebas campur dalam satu paket</p>
 
@@ -193,12 +188,36 @@
 
         <!-- Tombol Cek Keranjang (Menuju keranjang.html) -->
         <button class="btn-cek-keranjang" onclick="keHalamanKeranjang()">Cek Keranjang</button>
-    </div> 
+    </div>
 
 </div>
 
-
 <script src="script-menu-utama.js"></script>
+
+<!-- Trigger Rahasia Triple Click untuk Login Pegawai -->
+<script>
+    (function() {
+        const staffTrigger = document.getElementById('staff-trigger');
+        if (!staffTrigger) return;
+
+        let clickCount = 0;
+        let clickTimer = null;
+
+        staffTrigger.addEventListener('click', () => {
+            clickCount++;
+            clearTimeout(clickTimer);
+
+            if (clickCount === 3) {
+                clickCount = 0;
+                window.location.href = 'login-pegawai.html';
+            } else {
+                clickTimer = setTimeout(() => {
+                    clickCount = 0;
+                }, 800);
+            }
+        });
+    })();
+</script>
 
 </body>
 </html>

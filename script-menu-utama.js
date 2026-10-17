@@ -21,6 +21,7 @@ function pilihKategori(event, targetId) {
 window.addEventListener('DOMContentLoaded', () => {
     updateTampilanStokPembeli();
     renderPopupKeranjang();
+    initStaffTrigger();
 });
 
 function renderPopupKeranjang() {
@@ -41,11 +42,11 @@ function renderPopupKeranjang() {
                 totalPorsiSemua += item.qty;
                 totalHargaSemua += item.harga;
 
-                let catatanHtml = item.catatan 
-                    ? `<div class="item-catatan">Catatan: "${item.catatan}"</div>` 
+                let catatanHtml = item.catatan
+                    ? `<div class="item-catatan">Catatan: "${item.catatan}"</div>`
                     : '';
 
-                let imageHtml = item.imgSrc 
+                let imageHtml = item.imgSrc
                     ? `<img src="${item.imgSrc}" alt="${item.nama}" class="cart-item-img">`
                     : `<div class="cart-item-placeholder">Menu</div>`;
 
@@ -91,7 +92,7 @@ function renderPopupKeranjang() {
 // 3. Fungsi Ubah Qty (+ / -) Langsung di Popup Keranjang
 function ubahQtyPopup(index, delta) {
     let keranjang = JSON.parse(localStorage.getItem('sabangdor_cart')) || [];
-    
+
     if (keranjang[index]) {
         let hargaSatuan = keranjang[index].harga / keranjang[index].qty;
         keranjang[index].qty += delta;
@@ -104,7 +105,7 @@ function ubahQtyPopup(index, delta) {
         }
 
         localStorage.setItem('sabangdor_cart', JSON.stringify(keranjang));
-        
+
         if (keranjang.length === 0) {
             kosongkanKeranjang();
         } else {
@@ -113,62 +114,7 @@ function ubahQtyPopup(index, delta) {
     }
 }
 
-// 4. Sinkronisasi Status Stok Habis dari Dashboard Penjual (Real-time via localStorage)
-function updateTampilanStokPembeli() {
-    let menuStatus = JSON.parse(localStorage.getItem('sabangdor_menu_status')) || [];
-
-    menuStatus.forEach(item => {
-        if (item.status === 'habis') {
-            const cards = document.querySelectorAll('.card-menu');
-            cards.forEach(card => {
-                const titleEl = card.querySelector('.card-title');
-                if (titleEl && titleEl.innerText.trim().toLowerCase() === item.nama.toLowerCase()) {
-                    card.style.opacity = '0.5';
-                    card.style.filter = 'grayscale(100%)';
-                    
-                    const btn = card.querySelector('.btn-pilih');
-                    if (btn) {
-                        btn.innerText = 'Habis';
-                        btn.style.backgroundColor = '#94A3B8';
-                        btn.style.color = '#FFFFFF';
-                        btn.style.pointerEvents = 'none'; // Matikan tombol
-                        btn.removeAttribute('href');
-                    }
-                }
-            });
-        }
-    });
-}
-
-// 5. Kosongkan Keranjang
-function kosongkanKeranjang() {
-    localStorage.removeItem('sabangdor_cart');
-    const cartPopup = document.getElementById('cart-popup');
-    if (cartPopup) {
-        cartPopup.classList.remove('show-smooth');
-        setTimeout(() => {
-            cartPopup.classList.add('hidden');
-        }, 300);
-    }
-}
-
-// 6. Navigasi Tombol "Cek Keranjang" ke Halaman Teman
-function keHalamanKeranjang() {
-    window.location.href = 'keranjang.html';
-}
-
-// Memantau perubahan localStorage secara real-time saat kedua tab terbuka
-window.addEventListener('storage', (e) => {
-    if (e.key === 'sabangdor_menu_status') {
-        updateTampilanStokPembeli();
-    }
-});
-
-// Jalankan juga saat halaman pertama kali dimuat
-document.addEventListener('DOMContentLoaded', () => {
-    updateTampilanStokPembeli();
-});
-
+// 4. Sinkronisasi Status Stok Habis dari Dashboard Penjual
 function updateTampilanStokPembeli() {
     let menuStatus = JSON.parse(localStorage.getItem('sabangdor_menu_status')) || [];
 
@@ -194,7 +140,7 @@ function updateTampilanStokPembeli() {
                 if (titleEl && titleEl.innerText.trim().toLowerCase() === item.nama.toLowerCase()) {
                     card.style.opacity = '0.5';
                     card.style.filter = 'grayscale(100%)';
-                    
+
                     const btn = card.querySelector('.btn-pilih');
                     if (btn) {
                         btn.innerText = 'Habis';
@@ -208,3 +154,50 @@ function updateTampilanStokPembeli() {
         }
     });
 }
+
+// 5. Kosongkan Keranjang
+function kosongkanKeranjang() {
+    localStorage.removeItem('sabangdor_cart');
+    const cartPopup = document.getElementById('cart-popup');
+    if (cartPopup) {
+        cartPopup.classList.remove('show-smooth');
+        setTimeout(() => {
+            cartPopup.classList.add('hidden');
+        }, 300);
+    }
+}
+
+// 6. Navigasi Tombol "Cek Keranjang" ke Halaman Teman
+function keHalamanKeranjang() {
+    window.location.href = 'keranjang.html';
+}
+
+// 7. Trigger Rahasia Triple Click untuk Login Pegawai
+function initStaffTrigger() {
+    const staffTrigger = document.getElementById('staff-trigger');
+    if (!staffTrigger) return;
+
+    let clickCount = 0;
+    let clickTimer = null;
+
+    staffTrigger.addEventListener('click', () => {
+        clickCount++;
+        clearTimeout(clickTimer);
+
+        if (clickCount === 3) {
+            clickCount = 0;
+            window.location.href = 'login-pegawai.html';
+        } else {
+            clickTimer = setTimeout(() => {
+                clickCount = 0;
+            }, 800);
+        }
+    });
+}
+
+// Memantau perubahan localStorage secara real-time saat kedua tab terbuka
+window.addEventListener('storage', (e) => {
+    if (e.key === 'sabangdor_menu_status') {
+        updateTampilanStokPembeli();
+    }
+});
