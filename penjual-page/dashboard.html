@@ -4,23 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SABANGDOR - Dashboard Penjual (Mobile)</title>
-    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- CSS Khusus Penjual -->
     <link rel="stylesheet" href="style-penjual.css">
 </head>
 <body>
 
     <div class="mobile-container">
-        <!-- HEADER MERCHANT (Disesuaikan dengan gaya index.html) -->
+        <!-- HEADER MERCHANT -->
         <div class="merchant-header-top">
             <div>
                 <h2 class="main-header">SABANGDOR</h2>
                 <h1 class="page-title" id="page-title">Manajemen Stok Menu</h1>
-                <p class="page-subtitle" id="page-subtitle">Atur Ketersediaan Menu</p>
+                <p class="page-subtitle" id="page-subtitle">Atur Ketersediaan Menu & QRIS</p>
             </div>
             <div class="status-indicator">
                 <span class="dot-live"></span>
@@ -28,27 +25,10 @@
             </div>
         </div>
 
-        <!-- NAVBAR KATEGORI / TAB MENU (Desain Tab persis seperti index.html) -->
-        <nav class="nav-tab-bar">
-            <button class="tab-item active" onclick="navigate('dashboard', this)">
-                <span class="tab-label">📦 Stok Menu</span>
-            </button>
-            <button class="tab-item" onclick="navigate('pembayaran', this)">
-                <span class="tab-label">💳 Pembayaran</span>
-                <span id="badge-notif-bayar" class="badge-notif" style="display:none;">0</span>
-            </button>
-            <button class="tab-item" onclick="navigate('pantau', this)">
-                <span class="tab-label">🖥️ Pesanan</span>
-            </button>
-            <button class="tab-item" onclick="navigate('riwayat', this)">
-                <span class="tab-label">📋 Riwayat</span>
-            </button>
-        </nav>
-
-        <!-- MAIN CONTENT CONTAINER (SCROLLABLE AREA) -->
+        <!-- MAIN CONTENT CONTAINER (Area Scrollable) -->
         <main class="merchant-body">
             
-            <!-- SECTION 1: MANAJEMEN STOK MENU -->
+            <!-- SECTION 1: MANAJEMEN STOK MENU & UPLOAD QRIS -->
             <section id="sec-dashboard" class="page-section active">
                 <div id="grid-stok-menu" class="menu-container"></div>
             </section>
@@ -58,27 +38,54 @@
                 <div id="container-pembayaran" class="menu-container"></div>
             </section>
 
-            <!-- SECTION 3: PANTAU PESANAN (KANBAN MOBILE) -->
+            <!-- SECTION 3: DISPLAY KITCHEN (ANTRIAN MOBILE) -->
             <section id="sec-pantau" class="page-section">
                 <div class="kanban-mobile-tabs">
-                    <button class="k-tab active" onclick="switchKanbanTab('terkirim', event)">Menunggu (<span id="count-terkirim">0</span>)</button>
-                    <button class="k-tab" onclick="switchKanbanTab('diproses', event)">Dimasak (<span id="count-diproses">0</span>)</button>
-                    <button class="k-tab" onclick="switchKanbanTab('selesai', event)">Disajikan (<span id="count-selesai">0</span>)</button>
+                    <button class="k-tab active" onclick="switchKitchenTab('proses-masak', event)">Proses Masak (<span id="count-terkirim">0</span>)</button>
+                    <button class="k-tab" onclick="switchKitchenTab('selesai', event)">Selesai (<span id="count-selesai">0</span>)</button>
                 </div>
-
                 <div id="kanban-content-mobile" class="menu-container"></div>
             </section>
 
             <!-- SECTION 4: RIWAYAT TRANSAKSI & OMZET -->
             <section id="sec-riwayat" class="page-section">
+                <!-- Filter Tanggal -->
+                <div class="card" style="margin-bottom:12px; background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:12px;">
+                    <label for="filterTanggal" style="font-size:12px; font-weight:700; color:#1E293B; display:block; margin-bottom:6px;">📅 Filter Berdasarkan Tanggal:</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="date" id="filterTanggal" style="flex:1; padding:8px 10px; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; outline:none;" onchange="renderCurrentSection()">
+                        <button onclick="resetFilterTanggal()" style="padding:8px 12px; background:#F1F5F9; border:1px solid #E2E8F0; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; color:#64748B;">Semua</button>
+                    </div>
+                </div>
+
                 <div id="summary-omzet-card" class="omzet-banner"></div>
                 <div id="history-cards-container" class="menu-container"></div>
             </section>
 
         </main>
+
+        <!-- NAVBAR KATEGORI / TAB MENU (POSISI DI BAWAH / BOTTOM BAR) -->
+        <nav class="nav-tab-bar-bottom">
+            <button class="tab-item active" onclick="navigate('dashboard', this)">
+                <span class="tab-icon">📦</span>
+                <span class="tab-label">Stok</span>
+            </button>
+            <button class="tab-item" onclick="navigate('pembayaran', this)">
+                <span class="tab-icon">💳</span>
+                <span class="tab-label">Bayar</span>
+                <span id="badge-notif-bayar" class="badge-notif" style="display:none;">0</span>
+            </button>
+            <button class="tab-item" onclick="navigate('pantau', this)">
+                <span class="tab-icon">🖥️</span>
+                <span class="tab-label">Dapur</span>
+            </button>
+            <button class="tab-item" onclick="navigate('riwayat', this)">
+                <span class="tab-icon">📋</span>
+                <span class="tab-label">Riwayat</span>
+            </button>
+        </nav>
     </div>
 
-    <!-- Script Khusus Penjual -->
     <script src="script-penjual.js"></script>
 </body>
 </html>
