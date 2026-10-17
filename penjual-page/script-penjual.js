@@ -1,6 +1,6 @@
 /**
  * File: js/script-penjual.js
- * Perbaikan: Menampilkan varian, catatan pelanggan, dan memperbaiki kalkulasi harga item (mencegah RpNaN).
+ * Perbaikan Utama: Smart rendering agar interval tidak menghancurkan elemen input saat kasir mengetik di HP/mobile.
  */
 
 const QRIS_STORAGE_KEY = "sabangdor_custom_qris";
@@ -14,18 +14,42 @@ const masterMenuSabangdor = [
     { id: 'bakpao', nama: 'Bakpao', harga: 26000, status: 'tersedia', img: 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80' }
 ];
 
+let currentSec = 'dashboard';
+let activeKanbanFilter = 'proses-masak';
+let lastOrdersHash = ""; // Untuk mendeteksi perubahan data pesanan
+
 document.addEventListener('DOMContentLoaded', () => {
     let savedMenu = JSON.parse(localStorage.getItem('sabangdor_menu_status'));
     if (!savedMenu || savedMenu.length !== masterMenuSabangdor.length) {
         localStorage.setItem('sabangdor_menu_status', JSON.stringify(masterMenuSabangdor));
     }
 
-    navigate('dashboard', document.querySelector('.tab-item'));
-    setInterval(renderCurrentSection, 2000);
+    navigate('dashboard', document.querySelectorAll('.tab-item')[0]);
+
+    // Interval rutin 2 detik untuk membaca pesanan baru (hanya render jika ada perubahan data)
+    setInterval(() => {
+        checkAndRenderAuto();
+    }, 2000);
 });
 
-let currentSec = 'dashboard';
-let activeKanbanFilter = 'proses-masak';
+function checkAndRenderAuto() {
+    // Jangan re-render jika kasir sedang aktif mengetik di kolom input apapun
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        return;
+    }
+
+    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
+    let riwayat = JSON.parse(localStorage.getItem('sabangdor_riwayat_transaksi')) || [];
+
+    // Buat penanda status (hash) sederhana
+    let currentHash = JSON.stringify(semuaPesanan.map(p => ({ id: p.idOrder, st: p.status }))) + "_" + riwayat.length;
+
+    // Hanya panggil render jika ada pesanan baru/berubah status
+    if (currentHash !== lastOrdersHash) {
+        lastOrdersHash = currentHash;
+        renderCurrentSection(true);
+    }
+}
 
 function navigate(secKey, el) {
     currentSec = secKey;
@@ -34,7 +58,8 @@ function navigate(secKey, el) {
     if (el) el.classList.add('active');
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`sec-${secKey}`).classList.add('active');
+    const secEl = document.getElementById(`sec-${secKey}`);
+    if (secEl) secEl.classList.add('active');
 
     const titleMap = {
         'dashboard': { t: 'Manajemen Stok & QRIS', s: 'Atur Ketersediaan Menu & Gambar QRIS Toko' },
@@ -43,13 +68,15 @@ function navigate(secKey, el) {
         'riwayat': { t: 'Riwayat Transaksi', s: 'Arsip transaksi selesai & total omzet harian' }
     };
 
-    document.getElementById('page-title').innerText = titleMap[secKey].t;
-    document.getElementById('page-subtitle').innerText = titleMap[secKey].s;
+    if (titleMap[secKey]) {
+        document.getElementById('page-title').innerText = titleMap[secKey].t;
+        document.getElementById('page-subtitle').innerText = titleMap[secKey].s;
+    }
 
-    renderCurrentSection();
+    renderCurrentSection(true);
 }
 
-function renderCurrentSection() {
+function renderCurrentSection(force = false) {
     let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
     let riwayat = JSON.parse(localStorage.getItem('sabangdor_riwayat_transaksi')) || [];
 
@@ -65,7 +92,7 @@ function renderCurrentSection() {
     }
 
     if (currentSec === 'dashboard') renderStokMenu();
-    else if (currentSec === 'pembayaran') renderPembayaran(semuaPesanan);
+    else if (currentSec === 'pembayaran') renderPembayaran(semuaPesanan, force);
     else if (currentSec === 'pantau') renderKitchenDisplay(semuaPesanan, riwayat);
     else if (currentSec === 'riwayat') renderRiwayat(riwayat);
 }
@@ -78,18 +105,25 @@ function renderStokMenu() {
     let customQrisImg = localStorage.getItem(QRIS_STORAGE_KEY);
 
     let html = `
-        <div class="card" style="margin-bottom:10px; background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:12px;">
-            <h3 style="font-size:13px; font-weight:700; margin-bottom:4px; color:#1E293B;">📷 Setting Gambar QRIS Toko</h3>
-            <p style="font-size:10.5px; color:#64748B; margin-bottom:8px;">Unggah gambar QRIS outlet Anda agar otomatis muncul di halaman checkout pembeli.</p>
-            <input type="file" id="inputFileQris" accept="image/*" style="font-size:11px; margin-bottom:6px;">
+        <div class="card">
+            <div class="card-title">📷 Setting QRIS Outlet</div>
+            <div class="card-sub">Unggah gambar QRIS untuk halaman checkout pembeli</div>
+            
+            <div class="upload-wrapper">
+                <button type="button" class="btn-upload-custom" onclick="document.getElementById('inputFileQris').click()">
+                    ➕ Pilih Gambar QRIS
+                </button>
+                <input type="file" id="inputFileQris" accept="image/*" style="display:none;">
+            </div>
+
             ${customQrisImg ? `
-                <div style="margin-top:6px;">
-                    <span style="font-size:10px; font-weight:700; color:#10B981;">✓ Gambar QRIS Aktif:</span>
-                    <img src="${customQrisImg}" alt="QRIS Toko" style="max-width:90px; display:block; border-radius:6px; border:1px solid #ddd; margin-top:3px;">
+                <div class="qris-preview-container">
+                    <span style="font-size:11px; font-weight:800; color:#10B981;">✓ Gambar QRIS Aktif</span><br>
+                    <img src="${customQrisImg}" class="qris-preview-img" alt="QRIS Toko">
                 </div>
             ` : ''}
         </div>
-        <h3 style="font-size:13px; font-weight:700; margin-bottom:8px; color:#1E293B;">Daftar Stok Menu</h3>
+        <div class="card-title" style="margin-top:10px;">Daftar Stok Menu</div>
     `;
 
     menuList.forEach((item, index) => {
@@ -97,10 +131,10 @@ function renderStokMenu() {
         const imgUrl = item.img || 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80';
 
         html += `
-            <div class="stok-card ${isHabis ? 'habis' : ''}">
+            <div class="stok-card">
                 <div class="stok-left">
-                    <img src="${imgUrl}" alt="${item.nama}" class="stok-thumb">
-                    <div class="stok-name">${item.nama}</div>
+                    <img src="${imgUrl}" class="stok-thumb" alt="${item.nama}">
+                    <span class="stok-name">${item.nama}</span>
                 </div>
                 <button class="btn-toggle-stok ${isHabis ? 'empty' : 'ready'}" onclick="toggleStok(${index})">
                     ${isHabis ? '🔴 HABIS' : '🟢 TERSEDIA'}
@@ -119,7 +153,6 @@ function renderStokMenu() {
                 const reader = new FileReader();
                 reader.onload = function (evt) {
                     localStorage.setItem(QRIS_STORAGE_KEY, evt.target.result);
-                    alert("Gambar QRIS berhasil diunggah!");
                     renderStokMenu();
                 };
                 reader.readAsDataURL(file);
@@ -135,7 +168,6 @@ function toggleStok(index) {
     renderStokMenu();
 }
 
-// Helper untuk Ambil Harga Item dengan Aman
 function getItemSubtotal(i) {
     if (i.totalHargaItem && !isNaN(i.totalHargaItem)) return i.totalHargaItem;
     if (i.hargaSatuan && !isNaN(i.hargaSatuan)) return i.hargaSatuan * (i.qty || 1);
@@ -144,9 +176,10 @@ function getItemSubtotal(i) {
 }
 
 // 2. VERIFIKASI PEMBAYARAN
-function renderPembayaran(pesananList) {
+function renderPembayaran(pesananList, force = false) {
     const container = document.getElementById('container-pembayaran');
     if (!container) return;
+
     let pending = pesananList.filter(p => p.status === 'Menunggu Tunai' || p.status.includes('Lunas QRIS'));
 
     if (pending.length === 0) {
@@ -159,11 +192,11 @@ function renderPembayaran(pesananList) {
         if (order.status === 'Menunggu Tunai' || order.status.includes('Lunas QRIS')) {
             let itemList = order.items.map(i => {
                 const itemHarga = getItemSubtotal(i);
-                const varianTxt = i.varian ? ` <small style="color:#64748B;">(${i.varian})</small>` : '';
-                const catatanTxt = i.catatan ? `<div style="color:#E11D48; font-size:10.5px; font-weight:600;">Catatan: "${i.catatan}"</div>` : '';
-
+                const varianTxt = i.varian ? ` <small style="color:var(--text-muted);">(${i.varian})</small>` : '';
+                const catatanTxt = i.catatan ? `<div class="item-catatan">Catatan: "${i.catatan}"</div>` : '';
+                
                 return `
-                    <li style="padding:4px 0; border-bottom:1px dashed #f0f0f0;">
+                    <li class="order-item-row">
                         <div>
                             <span><b>${i.qty || 1}x</b> ${i.nama}${varianTxt}</span>
                             ${catatanTxt}
@@ -173,21 +206,46 @@ function renderPembayaran(pesananList) {
                 `;
             }).join('');
 
-            const isQris = order.metodeBayar === 'QRIS';
+            const isTunai = order.metodeBayar === 'TUNAI' || order.metodeBayar === 'Tunai';
+            const valTunai = order.uangDiterima || '';
+            
+            let kembalianHtml = '';
+            if (valTunai && Number(valTunai) >= order.totalHarga) {
+                const k = Number(valTunai) - order.totalHarga;
+                kembalianHtml = `<div id="kembalianBox_${index}" class="kembalian-txt" style="color:var(--green-text);">Kembalian: Rp${k.toLocaleString('id-ID')}</div>`;
+            } else if (valTunai && Number(valTunai) < order.totalHarga) {
+                const kurang = order.totalHarga - Number(valTunai);
+                kembalianHtml = `<div id="kembalianBox_${index}" class="kembalian-txt" style="color:var(--primary-red);">Kurang: Rp${kurang.toLocaleString('id-ID')}</div>`;
+            } else {
+                kembalianHtml = `<div id="kembalianBox_${index}" class="kembalian-txt" style="display:none;"></div>`;
+            }
 
             html += `
-                <div class="order-card-mobile">
-                    <div class="order-card-head">
+                <div class="order-card-merchant">
+                    <div class="order-head">
                         <span class="order-id-txt">#${order.idOrder} (${order.namaPelanggan})</span>
-                        <span class="order-pay-tag ${isQris ? 'tag-qris' : 'tag-cash'}">${order.metodeBayar}</span>
+                        <span class="order-badge-pay ${isTunai ? 'tag-cash' : 'tag-qris'}">${order.metodeBayar}</span>
                     </div>
-                    <p style="font-size:11px; color:var(--text-muted); mb-2">${order.waktu} WIB | Total: <b style="color:var(--primary-red);">${order.totalHargaFormatted}</b></p>
-                    <ul class="order-item-ul">${itemList}</ul>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">
+                        ${order.waktu} WIB | Total Tagihan: <b style="color:var(--primary-red); font-size:0.85rem;">${order.totalHargaFormatted}</b>
+                    </div>
                     
-                    ${order.metodeBayar === 'TUNAI' || order.metodeBayar === 'Tunai' ? 
-                        `<button class="btn-m-action btn-m-cash" onclick="konfirmasiPembayaran(${index}, 'Proses Masak')">Konfirmasi Terima Tunai & Kirim Dapur</button>` : 
-                        `<button class="btn-m-action btn-m-cook" onclick="konfirmasiPembayaran(${index}, 'Proses Masak')">Verifikasi QRIS & Kirim Dapur</button>`
-                    }
+                    <ul class="order-item-list">${itemList}</ul>
+                    
+                    ${isTunai ? `
+                        <div class="cash-input-box">
+                            <label for="inputBayar_${index}">💵 Uang Diterima dari Pembeli:</label>
+                            <input type="number" id="inputBayar_${index}" value="${valTunai}" placeholder="Ketik nominal tunai..." oninput="updateInputTunai(${index},${order.totalHarga}, this.value)">
+                            ${kembalianHtml}
+                        </div>
+                    ` : ''}
+
+                    <div class="btn-group">
+                        <button class="btn-primary-merchant" onclick="konfirmasiPembayaran(${index}, 'Proses Masak')">
+                            ${isTunai ? 'Terima Tunai & Kirim Dapur' : 'Verifikasi QRIS & Kirim Dapur'}
+                        </button>
+                        <button class="btn-outline-merchant" onclick="cetakStrukIndex(${index})">🖨️ Struk</button>
+                    </div>
                 </div>
             `;
         }
@@ -195,11 +253,48 @@ function renderPembayaran(pesananList) {
     container.innerHTML = html;
 }
 
+function updateInputTunai(index, totalHarga, value) {
+    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
+    if (semuaPesanan[index]) {
+        const valNum = Number(value) || 0;
+        semuaPesanan[index].uangDiterima = value;
+        semuaPesanan[index].kembalian = Math.max(0, valNum - totalHarga);
+        localStorage.setItem('sabangdor_semua_pesanan', JSON.stringify(semuaPesanan));
+
+        // Update teks kembalian secara langsung tanpa re-render HTML agar tidak mengganggu fokus keyboard HP
+        const boxEl = document.getElementById(`kembalianBox_${index}`);
+        if (boxEl) {
+            if (valNum >= totalHarga) {
+                boxEl.style.display = 'block';
+                boxEl.style.color = 'var(--green-text)';
+                boxEl.innerText = `Kembalian: Rp${(valNum - totalHarga).toLocaleString('id-ID')}`;
+            } else if (valNum > 0) {
+                boxEl.style.display = 'block';
+                boxEl.style.color = 'var(--primary-red)';
+                boxEl.innerText = `Kurang: Rp${(totalHarga - valNum).toLocaleString('id-ID')}`;
+            } else {
+                boxEl.style.display = 'none';
+            }
+        }
+    }
+}
+
 function konfirmasiPembayaran(index, newStatus) {
     let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
+    
+    const inputEl = document.getElementById(`inputBayar_${index}`);
+    if (inputEl && inputEl.value) {
+        const bayar = Number(inputEl.value) || semuaPesanan[index].totalHarga;
+        semuaPesanan[index].uangDiterima = bayar;
+        semuaPesanan[index].kembalian = Math.max(0, bayar - semuaPesanan[index].totalHarga);
+    }
+
     semuaPesanan[index].status = newStatus;
     localStorage.setItem('sabangdor_semua_pesanan', JSON.stringify(semuaPesanan));
-    renderCurrentSection();
+    
+    // Reset hash agar langsung merefresh tampilan
+    lastOrdersHash = "";
+    renderCurrentSection(true);
 }
 
 // 3. DISPLAY KITCHEN
@@ -207,13 +302,13 @@ function switchKitchenTab(type, evt) {
     activeKanbanFilter = type;
     document.querySelectorAll('.k-tab').forEach(b => b.classList.remove('active'));
     if (evt && evt.target) evt.target.classList.add('active');
-    renderCurrentSection();
+    renderCurrentSection(true);
 }
 
 function renderKitchenDisplay(pesananList, riwayatList) {
     const container = document.getElementById('kanban-content-mobile');
     if (!container) return;
-
+    
     let listProsesMasak = pesananList.filter(p => p.status === 'Proses Masak');
     let listSelesai = riwayatList;
 
@@ -233,24 +328,24 @@ function renderKitchenDisplay(pesananList, riwayatList) {
     filtered.forEach((order) => {
         let itemList = order.items ? order.items.map(i => {
             const varianTxt = i.varian ? ` (${i.varian})` : '';
-            const catatanTxt = i.catatan ? `<div style="color:#E11D48; font-size:10.5px; font-weight:700;">Catatan: "${i.catatan}"</div>` : '';
+            const catatanTxt = i.catatan ? `<div class="item-catatan">Catatan: "${i.catatan}"</div>` : '';
             return `<li style="margin-bottom:6px;"><div><b>${i.qty || 1}x ${i.nama}${varianTxt}</b>${catatanTxt}</div></li>`;
         }).join('') : '';
-
+        
         html += `
-            <div class="order-card-mobile">
-                <div class="order-card-head">
+            <div class="order-card-merchant">
+                <div class="order-head">
                     <span class="order-id-txt">#${order.idOrder} - ${order.namaPelanggan}</span>
-                    <span style="font-size:11px; font-weight:700; color:var(--text-muted);">${order.waktu} WIB</span>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">${order.waktu} WIB</span>
                 </div>
-                <ul class="order-item-ul">${itemList}</ul>
+                <ul class="order-item-list">${itemList}</ul>
         `;
 
         if (activeKanbanFilter === 'proses-masak') {
             let realIndex = pesananList.findIndex(p => p.idOrder === order.idOrder);
-            html += `<button class="btn-m-action btn-m-finish" onclick="tandaiSelesaiDapur(${realIndex})">Konfirmasi Selesai & Sajikan</button></div>`;
+            html += `<button class="btn-primary-merchant" style="background:#3B82F6;" onclick="tandaiSelesaiDapur(${realIndex})">Selesai & Sajikan</button></div>`;
         } else {
-            html += `<p style="font-size:11px; color:var(--status-green); font-weight:700; margin-top:8px;">Status: Selesai & Disajikan</p></div>`;
+            html += `<p style="font-size:0.8rem; color:var(--green-text); font-weight:800;">Status: Selesai & Disajikan</p></div>`;
         }
     });
 
@@ -268,49 +363,48 @@ function tandaiSelesaiDapur(index) {
 
         localStorage.setItem('sabangdor_semua_pesanan', JSON.stringify(semuaPesanan));
         localStorage.setItem('sabangdor_riwayat_transaksi', JSON.stringify(riwayat));
-        renderCurrentSection();
+        
+        lastOrdersHash = "";
+        renderCurrentSection(true);
     }
 }
 
-// Tambahkan fungsi untuk mereset filter tanggal kembali ke semua riwayat
+// 4. RIWAYAT & OMZET
 function resetFilterTanggal() {
     const inputEl = document.getElementById('filterTanggal');
     if (inputEl) inputEl.value = '';
-    renderCurrentSection();
+    renderCurrentSection(true);
 }
 
-// 4. RIWAYAT & OMZET (DENGAN FILTER TANGGAL)
 function renderRiwayat(riwayatList) {
     const banner = document.getElementById('summary-omzet-card');
     const container = document.getElementById('history-cards-container');
     const filterInput = document.getElementById('filterTanggal');
     if (!container) return;
 
-    let selectedDate = filterInput ? filterInput.value : ''; // Format dari input date: "YYYY-MM-DD"
-
-    // Konversi format tanggal input (YYYY-MM-DD) ke format lokal Indonesia (DD/MM/YYYY) agar cocok dengan data transaksi
+    let selectedDate = filterInput ? filterInput.value : '';
     let formattedSelectedDate = '';
     if (selectedDate) {
-        const parts = selectedDate.split('-'); // [YYYY, MM, DD]
+        const parts = selectedDate.split('-');
         if (parts.length === 3) {
             formattedSelectedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
     }
 
-    // Filter riwayat berdasarkan tanggal yang dipilih (jika ada)
     let filteredList = riwayatList;
     if (formattedSelectedDate) {
         filteredList = riwayatList.filter(item => item.tanggal === formattedSelectedDate);
     }
 
-    // Hitung total omzet dari data yang sudah difilter
     let totalOmzet = filteredList.reduce((sum, item) => sum + item.totalHarga, 0);
 
     if (banner) {
         let labelOmzet = formattedSelectedDate ? `Omzet Tanggal ${formattedSelectedDate}` : 'Total Omzet Keseluruhan';
         banner.innerHTML = `
-            <p style="font-size:11px; color:#D9C8B8;">${labelOmzet}</p>
-            <h2 style="font-size:20px; margin-top:2px;">Rp${totalOmzet.toLocaleString('id-ID')}</h2>
+            <div class="omzet-banner">
+                <p>${labelOmzet}</p>
+                <h2>Rp${totalOmzet.toLocaleString('id-ID')}</h2>
+            </div>
         `;
     }
 
@@ -320,20 +414,133 @@ function renderRiwayat(riwayatList) {
     }
 
     let html = '';
-    filteredList.slice().reverse().forEach(item => {
+    filteredList.slice().reverse().forEach((item) => {
         html += `
-            <div class="history-card-item" style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+            <div class="order-card-merchant" style="flex-direction:row; justify-content:space-between; align-items:center;">
                 <div>
-                    <div style="font-weight:800; font-size:13px;">#${item.idOrder} (${item.namaPelanggan} - ${item.metodeBayar})</div>
-                    <div style="font-size:11px; color:var(--text-muted);">${item.tanggal} • ${item.waktu} WIB</div>
+                    <div style="font-weight:800; font-size:0.85rem;">#${item.idOrder} (${item.namaPelanggan} - ${item.metodeBayar})</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${item.tanggal} • ${item.waktu} WIB</div>
                 </div>
-                <div style="font-size:13px; font-weight:800; color:var(--status-green);">
-                    ${item.totalHargaFormatted}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <b style="color:var(--green-text); font-size:0.85rem;">${item.totalHargaFormatted}</b>
+                    <button class="btn-outline-merchant" style="padding:6px 10px; font-size:0.75rem;" onclick='cetakStrukLangsung(${JSON.stringify(item)})'>🖨️</button>
                 </div>
             </div>
         `;
     });
     container.innerHTML = html;
+}
+
+// 5. CETAK STRUK PRINTER THERMAL (58mm)
+function cetakStrukIndex(index) {
+    let semuaPesanan = JSON.parse(localStorage.getItem('sabangdor_semua_pesanan')) || [];
+    if (semuaPesanan[index]) {
+        cetakStrukLangsung(semuaPesanan[index]);
+    }
+}
+
+function cetakStrukLangsung(order) {
+    const printWindow = window.open('', '', 'width=320,height=600');
+    if (!printWindow) {
+        alert("Pop-up diblokir browser! Izinkan pop-up untuk mencetak.");
+        return;
+    }
+
+    const itemsHtml = order.items.map(i => {
+        const harga = getItemSubtotal(i);
+        const varianTxt = i.varian ? ` (${i.varian})` : '';
+        const catatanTxt = i.catatan ? `<br><small>*${i.catatan}</small>` : '';
+        return `
+            <tr>
+                <td style="padding:2px 0;">${i.qty}x ${i.nama}${varianTxt}${catatanTxt}</td>
+                <td style="text-align:right; vertical-align:top;">Rp${harga.toLocaleString('id-ID')}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const tunaiVal = Number(order.uangDiterima) || 0;
+    const tunaiInfo = (tunaiVal > 0) ? `
+        <div style="display:flex; justify-content:space-between; margin-top:2px;">
+            <span>Tunai:</span>
+            <span>Rp${tunaiVal.toLocaleString('id-ID')}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+            <span>Kembali:</span>
+            <span>Rp${(order.kembalian || 0).toLocaleString('id-ID')}</span>
+        </div>
+    ` : '';
+
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Struk #${order.idOrder}</title>
+            <style>
+                @page { size: 58mm auto; margin: 0; }
+                body {
+                    font-family: 'Courier New', Courier, monospace;
+                    width: 48mm;
+                    margin: 0 auto;
+                    padding: 8px 0;
+                    font-size: 11px;
+                    color: #000;
+                }
+                .text-center { text-align: center; }
+                .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
+                table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+            </style>
+        </head>
+        <body>
+            <div class="text-center">
+                <strong style="font-size:14px;">SABANGDOR</strong><br>
+                <span>Outlet Ambil Sendiri</span><br>
+            </div>
+            
+            <div class="divider"></div>
+
+            <div>
+                <div>No: <strong>#${order.idOrder}</strong></div>
+                <div>Nama: ${order.namaPelanggan}</div>
+                <div>Tgl: ${order.tanggal || new Date().toLocaleDateString('id-ID')} ${order.waktu}</div>
+                <div>Bayar: ${order.metodeBayar}</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <table>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+            </table>
+
+            <div class="divider"></div>
+
+            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12px;">
+                <span>TOTAL:</span>
+                <span>${order.totalHargaFormatted}</span>
+            </div>
+            ${tunaiInfo}
+
+            <div class="divider"></div>
+            
+            <div class="text-center" style="margin-top:8px;">
+                <span>Terima Kasih!</span><br>
+                <small>Selamat Menikmati</small>
+            </div>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            </script>
+        </body>
+        </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
 }
 
 // Memeriksa autentikasi session
