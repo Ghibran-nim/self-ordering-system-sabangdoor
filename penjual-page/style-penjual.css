@@ -26,7 +26,7 @@ body {
     min-height: 100vh;
 }
 
-/* CONTAINER MOBILE VIEW HP (Disamakan persis dengan index.html) */
+/* CONTAINER MOBILE VIEW HP */
 .mobile-container {
     width: 100%;
     max-width: 480px;
@@ -34,10 +34,10 @@ body {
     background-color: var(--bg-app);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
     position: relative;
     box-shadow: 0 0 25px rgba(0,0,0,0.5);
-    padding: 16px;
+    padding: 16px 16px 70px 16px; /* Padding bawah disisakan untuk bottom navbar */
+    overflow: hidden;
 }
 
 /* HEADER ATAS */
@@ -52,20 +52,20 @@ body {
     font-size: 18px;
     font-weight: 800;
     color: var(--primary-red);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     letter-spacing: 0.5px;
 }
 
 .page-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text-main);
 }
 
 .page-subtitle {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .status-indicator {
@@ -79,7 +79,6 @@ body {
     color: var(--status-green);
     font-weight: 700;
     border: 1px solid #FEE2E2;
-    margin-top: 2px;
 }
 
 .dot-live {
@@ -89,51 +88,45 @@ body {
     border-radius: 50%;
 }
 
-/* NAVBAR TAB KATEGORI ATAS (Gaya persis seperti index.html) */
-.nav-tab-bar {
-    display: flex;
+/* NAVBAR TAB KATEGORI DI BAWAH (BOTTOM NAVBAR) */
+.nav-tab-bar-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 64px;
     background-color: white;
-    border-bottom: 1px solid var(--border-line);
-    padding: 0;
-    margin-bottom: 16px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    position: sticky;
-    top: -16px;
-    z-index: 99;
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 12px;
-    padding-right: 12px;
-}
-
-.nav-tab-bar::-webkit-scrollbar {
-    display: none;
+    border-top: 1px solid var(--border-line);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    padding: 0 8px;
 }
 
 .tab-item {
-    flex: 0 0 auto;
+    flex: 1;
     background: transparent;
     border: none;
-    padding: 12px 14px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     position: relative;
-    border-bottom: 3px solid transparent;
+    padding: 6px 0;
     transition: all 0.2s ease;
 }
 
-.tab-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    white-space: nowrap;
+.tab-icon {
+    font-size: 16px;
+    margin-bottom: 2px;
 }
 
-.tab-item.active {
-    border-bottom: 3px solid var(--primary-red);
+.tab-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-muted);
 }
 
 .tab-item.active .tab-label {
@@ -143,13 +136,13 @@ body {
 
 .badge-notif {
     position: absolute;
-    top: 6px;
-    right: 4px;
+    top: 4px;
+    right: 22%;
     background-color: var(--primary-red);
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    padding: 2px 6px;
+    padding: 1px 5px;
     border-radius: 10px;
 }
 
@@ -158,6 +151,8 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    padding-bottom: 12px;
 }
 
 .page-section {
@@ -175,7 +170,7 @@ body {
     margin-bottom: 20px;
 }
 
-/* KARTU STOK MENU (Disamakan dengan .card-menu di index.html) */
+/* KARTU STOK MENU */
 .stok-card {
     background-color: var(--card-bg);
     border-radius: 12px;
@@ -188,7 +183,6 @@ body {
 
 .stok-card.habis {
     opacity: 0.5;
-    filter: grayscale(100%);
     background-color: #F1F5F9;
 }
 
@@ -199,21 +193,21 @@ body {
 }
 
 .stok-thumb {
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
     object-fit: cover;
     border-radius: 8px;
     border: 1px solid var(--border-line);
 }
 
 .stok-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-main);
 }
 
 .btn-toggle-stok {
-    padding: 6px 14px;
+    padding: 6px 12px;
     border: none;
     border-radius: 8px;
     font-size: 11px;
@@ -221,15 +215,8 @@ body {
     cursor: pointer;
 }
 
-.btn-toggle-stok.ready {
-    background-color: #DCFCE7;
-    color: #15803D;
-}
-
-.btn-toggle-stok.empty {
-    background-color: #FEE2E2;
-    color: #991B1B;
-}
+.btn-toggle-stok.ready { background-color: #DCFCE7; color: #15803D; }
+.btn-toggle-stok.empty { background-color: #FEE2E2; color: #991B1B; }
 
 /* KARTU PEMBAYARAN & KANBAN */
 .order-card-mobile {
@@ -250,7 +237,7 @@ body {
 }
 
 .order-id-txt {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     color: var(--text-main);
 }
@@ -294,7 +281,6 @@ body {
 .btn-m-cook { background-color: #2563EB; color: white; }
 .btn-m-finish { background-color: var(--status-green); color: white; }
 
-/* KANBAN TABS MOBILE */
 .kanban-mobile-tabs {
     display: flex;
     gap: 6px;
@@ -319,11 +305,10 @@ body {
     border-color: var(--dark-maroon);
 }
 
-/* RIWAYAT & OMZET */
 .omzet-banner {
     background-color: var(--dark-maroon);
     color: white;
-    padding: 16px;
+    padding: 14px;
     border-radius: 12px;
     text-align: center;
     margin-bottom: 14px;
