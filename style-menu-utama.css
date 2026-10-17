@@ -389,3 +389,104 @@ body {
     cursor: pointer;
     margin-top: 10px;
 }
+
+/*buat login*/
+.login-wrapper {
+    width: 100%;
+    max-width: 430px;
+    min-height: 100vh;
+    background-color: #ffffff;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 1px solid #e4e4e7;
+    border-right: 1px solid #e4e4e7;
+    margin: 0 auto;
+}
+
+/* Header Brand Login */
+.login-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.login-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.login-header p {
+    font-size: 13px;
+    color: #71717a;
+}
+
+/* Box Form Login */
+.login-card-box {
+    border: 1px solid #18181b;
+    padding: 24px 20px;
+    border-radius: 8px;
+}
+
+.login-field-group {
+    margin-bottom: 16px;
+}
+
+.login-field-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #18181b;
+}
+
+.login-input-text {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #18181b;
+    background: #ffffff;
+    color: #18181b;
+    font-size: 14px;
+    border-radius: 6px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.login-input-text:focus {
+    border-width: 2px;
+    padding: 9px 11px;
+}
+
+/* Tombol Submit Login */
+.login-btn-submit {
+    width: 100%;
+    padding: 12px;
+    background-color: #18181b;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.login-btn-submit:hover {
+    background-color: #27272a;
+}
+
+/* Tombol Navigasi Kembali */
+.login-btn-back {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #71717a;
+    text-decoration: none;
+}
+
+.login-btn-back:hover {
+    color: #18181b;
+}
