@@ -191,3 +191,19 @@ create table menu_custom (
                              habis boolean default false,
                              created_at timestamptz default now()
 );
+
+-- 1. Aktifkan RLS untuk tabel menu_custom
+ALTER TABLE menu_custom ENABLE ROW LEVEL SECURITY;
+
+-- 2. Kebijakan Pembeli (Public): Boleh membaca/melihat menu custom
+CREATE POLICY "Pembeli: Lihat Menu Custom"
+ON menu_custom FOR SELECT
+                              TO public
+                              USING (true);
+
+-- 3. Kebijakan Pegawai (Authenticated): Boleh mengelola (Tambah, Edit, Hapus) menu custom
+CREATE POLICY "Pegawai: Kelola Menu Custom"
+ON menu_custom FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);
