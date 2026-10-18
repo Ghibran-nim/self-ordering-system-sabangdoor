@@ -50,13 +50,13 @@ function renderRekomendasiAI() {
     menuRekomendasiAI.forEach(item => {
         html += `
             <div class="card-menu">
-                <img src="${item.imgSrc || 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80'}" alt="${item.nama}" class="card-img">
+                <img src="${escHtml(item.imgSrc || DEFAULT_MENU_IMG)}" alt="${escHtml(item.nama)}" class="card-img">
                 <div class="card-content">
-                    <h3 class="card-title">${item.nama}</h3>
-                    <p class="variant">${item.variantInfo || 'S / M / XL • 3 / 6 / 16 pcs'}</p>
-                    <p class="price">${item.hargaFormatted || ('Mulai Rp' + item.harga.toLocaleString('id-ID'))}</p>
+                    <h3 class="card-title">${escHtml(item.nama)}</h3>
+                    <p class="variant">${escHtml(item.variantInfo || 'S / M / XL • 3 / 6 / 16 pcs')}</p>
+                    <p class="price">${escHtml(item.hargaFormatted || ('Mulai Rp' + Number(item.harga || 0).toLocaleString('id-ID')))}</p>
                 </div>
-                <a href="${item.linkDetail || 'detail-menu.html'}" class="btn-pilih">+ Pilih menu</a>
+                <a href="${escHtml(item.linkDetail || 'detail-menu.html')}" class="btn-pilih">+ Pilih menu</a>
             </div>
         `;
     });
@@ -67,6 +67,7 @@ function renderRekomendasiAI() {
 // Fungsi helper global yang bisa dipanggil langsung oleh script AI teman Anda (contoh: setRekomendasiDariAI([...]))
 function setRekomendasiDariAI(daftarMenuArray) {
     if (Array.isArray(daftarMenuArray)) {
+        daftarNamaRekomendasi = null; // jalur lama dipakai, batalkan jalur "by nama"
         menuRekomendasiAI = daftarMenuArray;
         renderRekomendasiAI();
     }
@@ -241,10 +242,12 @@ function initStaffTrigger() {
 window.addEventListener('storage', (e) => {
     if (e.key === 'sabangdor_menu_status') {
         updateTampilanStokPembeli();
+        terapkanRekomendasiNama();
     }
     if (e.key === CUSTOM_MENU_KEY) {
         renderMenuCustom();
         updateTampilanStokPembeli();
+        terapkanRekomendasiNama();
     }
 });
 
@@ -330,4 +333,106 @@ function renderMenuCustom() {
         if (firstTab) firstTab.classList.add('active');
         if (firstSec) firstSec.classList.add('active');
     }
+}
+
+// ==========================================================
+// 11. WADAH UNTUK AI (REKOMENDASI "PALING REKOMENDASI")
+// ----------------------------------------------------------
+// Cara paling mudah untuk AI/skrip teman: kirim DAFTAR NAMA MENU
+// berurutan (paling direkomendasikan di depan). Data gambar, harga,
+// varian, dan link detail diambil otomatis dari kartu menu yang ada,
+// baik menu bawaan maupun menu tambahan dari kasir.
+//
+//   setRekomendasiByNama(['Mentai Ori', 'Siomay Ayam', 'Bakpao']);
+//   setRekomendasiByNama(daftarNama, 4);   // batasi 4 menu (default 6)
+//
+// getDaftarNamaMenu() -> daftar semua nama menu yang tersedia saat ini
+// (tidak termasuk yang Habis), berguna untuk mencocokkan hasil AI.
+//
+// Aturan:
+//  - Nama dicocokkan tanpa membedakan huruf besar/kecil.
+//  - Nama yang tidak ditemukan dilewati (ada peringatan di Console).
+//  - Menu yang sedang Habis otomatis tidak ditampilkan.
+//  - Daftar diterapkan ulang otomatis kalau stok atau menu tambahan berubah.
+//  - Skrip AI harus dimuat SETELAH script-menu-utama.js.
+//  - Jalur lama setRekomendasiDariAI([...objek lengkap]) tetap bisa dipakai.
+// ==========================================================
+let daftarNamaRekomendasi = null;
+
+function ambilDataMenuTersedia() {
+    const status = JSON.parse(localStorage.getItem('sabangdor_menu_status')) || [];
+    const habis = status
+        .filter(s => s.status === 'habis')
+        .map(s => String(s.nama).trim().toLowerCase());
+
+    const hasil = {};
+    document.querySelectorAll('.menu-section .menu-container .card-menu').forEach(card => {
+        if (card.closest('#rekomendasi-container')) return; // jangan baca kartu rekomendasi sendiri
+
+        const judul = card.querySelector('.card-title');
+        const tombol = card.querySelector('.btn-pilih');
+        if (!judul || !tombol) return;
+
+        const nama = judul.textContent.trim();
+        const key = nama.toLowerCase();
+        const gambar = card.querySelector('.card-img');
+        const varian = card.querySelector('.variant');
+        const harga = card.querySelector('.price');
+        const href = tombol.getAttribute('href');
+
+        hasil[key] = {
+            nama: nama,
+            imgSrc: gambar ? gambar.getAttribute('src') : '',
+            variantInfo: varian ? varian.textContent.trim() : '',
+            hargaFormatted: harga ? harga.textContent.trim() : '',
+            linkDetail: href,
+            habis: habis.includes(key) || !href
+        };
+    });
+    return hasil;
+}
+
+function getDaftarNamaMenu() {
+    return Object.values(ambilDataMenuTersedia())
+        .filter(m => !m.habis)
+        .map(m => m.nama);
+}
+
+function setRekomendasiByNama(daftarNama, batas) {
+    if (!Array.isArray(daftarNama)) return;
+    daftarNamaRekomendasi = { daftar: daftarNama, batas: batas || 6 };
+
+    // Kalau dipanggil sebelum halaman selesai dimuat, tunggu dulu
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', terapkanRekomendasiNama);
+        return;
+    }
+    terapkanRekomendasiNama();
+}
+
+function terapkanRekomendasiNama() {
+    if (!daftarNamaRekomendasi) return;
+
+    const semua = ambilDataMenuTersedia();
+    const hasil = [];
+    const tidakDitemukan = [];
+
+    daftarNamaRekomendasi.daftar.forEach(item => {
+        const nama = typeof item === 'string' ? item : (item && item.nama);
+        if (!nama) return;
+
+        const data = semua[String(nama).trim().toLowerCase()];
+        if (!data) { tidakDitemukan.push(nama); return; }
+        if (data.habis) return;
+        if (hasil.some(h => h.nama === data.nama)) return; // hindari duplikat
+
+        hasil.push(data);
+    });
+
+    if (tidakDitemukan.length) {
+        console.warn('Rekomendasi AI: menu tidak ditemukan ->', tidakDitemukan.join(', '));
+    }
+
+    menuRekomendasiAI = hasil.slice(0, daftarNamaRekomendasi.batas);
+    renderRekomendasiAI();
 }
