@@ -392,4 +392,4 @@ async function simpanPesananKeSupabase(namaPembeli, metodeBayar, itemsKeranjang,
 
 document.addEventListener("DOMContentLoaded", () => {
     render();
-});
+});//zero

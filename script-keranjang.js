@@ -172,4 +172,4 @@ function showToast(text) {
 }
 
 // ===== Inisialisasi Awal =====
-render();
+render();//zero

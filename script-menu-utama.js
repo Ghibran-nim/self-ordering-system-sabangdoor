@@ -435,4 +435,4 @@ function terapkanRekomendasiNama() {
 
     menuRekomendasiAI = hasil.slice(0, daftarNamaRekomendasi.batas);
     renderRekomendasiAI();
-}
+}//zero
