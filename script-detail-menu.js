@@ -1,3 +1,122 @@
+// ==========================================
+// MENU TAMBAHAN: isi halaman detail dibuat otomatis dari data kasir
+// Hanya aktif di detail-menu-custom.html?id=... (butuh menu-custom-store.js).
+// Harus di paling atas agar markup sudah ada sebelum logika harga di bawah berjalan.
+// ==========================================
+(function () {
+    const body = document.getElementById('content-body');
+    if (!body || typeof getCustomMenus !== 'function') return; // bukan halaman detail menu tambahan
+    const id = new URLSearchParams(window.location.search).get('id');
+    const menu = getCustomMenus().find(m => m.id === id);
+
+    if (!menu) {
+        document.title = 'Menu tidak ditemukan';
+        body.innerHTML = `
+            <div class="section-card">
+                <h3>Menu tidak ditemukan</h3>
+                <p class="optional-subtitle">Menu ini mungkin sudah dihapus oleh kasir.</p>
+            </div>`;
+        const btn = document.querySelector('.cart-btn');
+        if (btn) btn.disabled = true;
+        return;
+    }
+
+    document.title = 'Detail Menu - ' + menu.nama;
+
+    const ukuran = menu.ukuran || [];
+    const addon = menu.addon || [];
+    const aktif = ukuran[0];
+
+    const ukuranHtml = ukuran.map((u, i) => `
+        <div class="size-box${i === 0 ? ' active' : ''}">
+            <span class="size-name">${escHtml(u.nama)}</span>
+            <span class="size-pcs">${escHtml(u.ket || '1 porsi')}</span>
+            <span class="size-price">${rupiah(u.harga)}</span>
+        </div>`).join('');
+
+    let tambahanHtml = '';
+    if (addon.length || menu.gratis) {
+        const badge = menu.gratis ? `<span class="badge-free">${escHtml(menu.gratis)}</span>` : '';
+        const subtitle = menu.gratis
+            ? `${escHtml(menu.gratis)} sudah termasuk dalam porsi.`
+            : 'Pilih tambahan sesuai selera.';
+        const addonHtml = addon.map(a => `
+            <div class="addon-item">
+                <div class="addon-label">
+                    <span>${escHtml(a.nama)}</span>
+                    <span class="addon-price">+${rupiah(a.harga)}</span>
+                </div>
+                <input type="checkbox" class="checkbox-custom">
+            </div>`).join('');
+
+        tambahanHtml = `
+        <div class="section-card">
+            <div class="optional-header">
+                <h3>Tambahan opsional</h3>
+                ${badge}
+            </div>
+            <p class="optional-subtitle">${subtitle}</p>
+            ${addonHtml}
+        </div>`;
+    }
+
+    const deskripsi = menu.deskripsi ? `<p>${escHtml(menu.deskripsi)}</p>` : '';
+
+    body.innerHTML = `
+        <div class="product-banner">
+            <div class="yellow-circle"></div>
+            <div class="image-wrapper">
+                <img src="${menu.img || DEFAULT_MENU_IMG}" alt="${escHtml(menu.nama)}">
+            </div>
+        </div>
+
+        <div class="product-info">
+            <h2>${escHtml(menu.nama)}</h2>
+            ${deskripsi}
+        </div>
+
+        <div class="section-card">
+            <h3>Pilih ukuran porsi</h3>
+            <div class="size-options">${ukuranHtml}</div>
+        </div>
+
+        ${tambahanHtml}
+
+        <div class="section-card">
+            <div class="qty-container">
+                <div class="qty-label-group">
+                    <h3>Jumlah porsi</h3>
+                    <div class="qty-controls">
+                        <button class="qty-btn minus"><i class="fa-solid fa-minus"></i></button>
+                        <span class="qty-value">1 porsi</span>
+                        <button class="qty-btn plus"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+                <span class="qty-pcs-info">${escHtml(aktif ? (aktif.ket || '1 porsi') : '')}/porsi</span>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h3>Catatan (opsional)</h3>
+            <div class="note-input-box">
+                <i class="fa-solid fa-pen"></i>
+                <input type="text" placeholder="Tulis catatan untuk menu ini">
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h3>Rincian harga</h3>
+            <div class="price-row">
+                <span>Harga porsi</span>
+                <span>${rupiah(aktif ? aktif.harga : 0)}</span>
+            </div>
+            <div class="price-row total-sub">
+                <span>Subtotal × 1 porsi</span>
+                <span>${rupiah(aktif ? aktif.harga : 0)}</span>
+            </div>
+        </div>`;
+})();
+
 document.addEventListener('DOMContentLoaded', function () {
     // 1. Ambil semua elemen HTML yang dibutuhkan
     const sizeBoxes = document.querySelectorAll('.size-box');
