@@ -494,3 +494,87 @@ input[type="number"] {
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+/* File: style-menu-tambahan.css — gaya form "Menu Tambahan" di dashboard kasir */
+.mt-field { margin-top: 14px; }
+.mt-field > label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-main, #1E293B);
+}
+.mt-hint { font-size: 11px; color: var(--text-muted, #64748B); margin-top: 4px; line-height: 1.4; }
+
+.mt-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-line, #E2E8F0);
+    border-radius: 8px;
+    background: #F8F9FA;
+    font-size: 13px;
+    color: var(--text-main, #1E293B);
+    outline: none;
+    font-family: inherit;
+    resize: none;
+}
+.mt-input:focus { border-color: var(--primary-red, #E11D48); background: #fff; }
+.mt-input::placeholder { color: var(--text-muted, #64748B); font-size: 12px; }
+
+.mt-photo { display: flex; align-items: center; gap: 12px; }
+.mt-photo img {
+    width: 72px; height: 72px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border-line, #E2E8F0);
+    flex-shrink: 0;
+}
+
+.mt-row { display: grid; gap: 6px; align-items: center; margin-bottom: 8px; }
+.mt-ukuran-row { grid-template-columns: 0.8fr 1.1fr 1.1fr auto; }
+.mt-addon-row  { grid-template-columns: 1.6fr 1fr auto; }
+.mt-row .mt-input { padding: 9px 8px; min-width: 0; }
+
+.mt-btn-x {
+    width: 30px; height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: #FEF2F2;
+    color: var(--primary-red, #E11D48);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.mt-btn-add {
+    width: 100%;
+    padding: 9px;
+    border: 1px dashed var(--primary-red, #E11D48);
+    border-radius: 8px;
+    background: #FEF2F2;
+    color: var(--primary-red, #E11D48);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mt-msg { display: none; margin-top: 12px; padding: 9px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+.mt-msg.show { display: block; }
+.mt-msg.ok { background: #ECFDF5; color: #059669; }
+.mt-msg.error { background: #FEF2F2; color: var(--primary-red, #E11D48); }
+
+#mt-form-card .btn-group { margin-top: 14px; }
+
+.mt-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mt-meta { font-size: 11px; color: var(--text-muted, #64748B); }
+.mt-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.mt-btn-small {
+    padding: 7px 10px;
+    border: none;
+    border-radius: 8px;
+    background: #F1F5F9;
+    color: var(--text-main, #1E293B);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.mt-btn-small.danger { background: #FEF2F2; color: var(--primary-red, #E11D48); }
