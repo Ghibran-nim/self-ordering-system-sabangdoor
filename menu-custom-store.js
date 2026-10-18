@@ -1,22 +1,9 @@
 /**
- * File: menu-custom-store.js
- * Penyimpanan & helper bersama untuk "Menu Tambahan" (dipakai dashboard kasir,
- * halaman menu utama pembeli, dan halaman detail menu otomatis).
- *
- * Bentuk data satu menu:
- * {
- *   id: 'custom-lx3k2a',
- *   nama: 'Siomay Ayam',
- *   kategori: 'Dimsum aja',          // kategori baru otomatis jadi tab baru di menu utama
- *   deskripsi: '...',
- *   img: 'data:image/jpeg;base64,...',
- *   gratis: 'Free Chilli Oil',       // opsional
- *   ukuran: [ { nama:'S', ket:'3 pcs', harga:13000 }, ... ],
- *   addon:  [ { nama:'Extra Mentai', harga:3000 }, ... ]
- * }
+ * - File: menu-custom-store.js (Versi Backend Express.js & PostgreSQL)
+ * - Penyimpanan & helper bersama untuk "Menu Tambahan"
  */
-const CUSTOM_MENU_KEY = 'sabangdor_custom_menus';
-const MENU_STATUS_KEY = 'sabangdor_menu_status';
+
+const API_BASE_URL = 'http://localhost:5000/api';
 const DEFAULT_MENU_IMG = 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80';
 
 // Kategori bawaan -> id section yang sudah ada di index.html
@@ -26,21 +13,84 @@ const KATEGORI_BAWAAN = {
     'Bakpao': 'section-bakpao'
 };
 
-function getCustomMenus() {
+// Cache lokal untuk menyimpan data menu custom sementara di browser
+let cachedCustomMenus = [];
+
+// Ambil data menu custom dari Backend PostgreSQL
+async function getCustomMenusFromSupabase() { // nama fungsi dipertahankan agar kompatibel
     try {
-        const data = JSON.parse(localStorage.getItem(CUSTOM_MENU_KEY));
-        return Array.isArray(data) ? data : [];
+        const response = await fetch(`${API_BASE_URL}/menu-custom`);
+        if (!response.ok) throw new Error('Gagal mengambil data menu custom');
+        const data = await response.json();
+
+        // Konversi format JSONB dari database kembali ke array objek JS jika diperlukan
+        cachedCustomMenus = data.map(item => ({
+            ...item,
+            img: item.img_url || item.img || DEFAULT_MENU_IMG,
+            ukuran: typeof item.ukuran === 'string' ? JSON.parse(item.ukuran) : (item.ukuran || []),
+            addon: typeof item.addon === 'string' ? JSON.parse(item.addon) : (item.addon || [])
+        }));
+
+        return cachedCustomMenus;
     } catch (e) {
-        return [];
+        console.error("Error mengambil menu custom:", e);
+        return cachedCustomMenus;
     }
 }
 
-function saveCustomMenus(list) {
+// Fungsi sinkronus cadangan yang mengembalikan data dari cache lokal
+function getCustomMenus() {
+    return cachedCustomMenus;
+}
+
+// Simpan atau Perbarui Menu Custom ke Backend PostgreSQL
+async function saveCustomMenuToSupabase(menuObj) {
     try {
-        localStorage.setItem(CUSTOM_MENU_KEY, JSON.stringify(list));
+        const payload = {
+            id: menuObj.id,
+            nama: menuObj.nama,
+            kategori: menuObj.kategori,
+            deskripsi: menuObj.deskripsi,
+            img_url: menuObj.img || menuObj.img_url || DEFAULT_MENU_IMG,
+            gratis: menuObj.gratis || '',
+            ukuran: menuObj.ukuran || [],
+            addon: menuObj.addon || [],
+            habis: menuObj.habis || false
+        };
+
+        const response = await fetch(`${API_BASE_URL}/menu-custom`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Gagal menyimpan menu ke database');
+
+        // Refresh cache lokal
+        await getCustomMenusFromSupabase();
         return true;
     } catch (e) {
-        alert('Penyimpanan penuh. Gunakan foto yang lebih kecil atau hapus menu lama.');
+        console.error("Gagal menyimpan menu:", e);
+        alert('Gagal menyimpan menu ke database PostgreSQL lokal.');
+        return false;
+    }
+}
+
+// Hapus Menu Custom dari Backend PostgreSQL
+async function deleteCustomMenuFromSupabase(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/menu-custom/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Gagal menghapus menu dari database');
+
+        // Refresh cache lokal
+        await getCustomMenusFromSupabase();
+        return true;
+    } catch (e) {
+        console.error("Gagal menghapus menu:", e);
+        alert('Gagal menghapus menu dari database.');
         return false;
     }
 }

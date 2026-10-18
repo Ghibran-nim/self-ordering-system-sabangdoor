@@ -240,63 +240,63 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Jalankan kalkulasi pertama kali saat halaman di-load
     initActiveSize();
-    updateCalculations();    
+    updateCalculations();
 
-const cartBtn = document.querySelector('.cart-btn');
-if (cartBtn) {
-    cartBtn.addEventListener('click', function () {
-        const namaProduk = document.querySelector('.product-info h2').innerText;
-        
-        // --- AMBIL LINK GAMBAR DARI HALAMAN DETAIL ---
-        const productImageEl = document.querySelector('.product-banner img');
-        const produkImgSrc = productImageEl ? productImageEl.src : '';
+    const cartBtn = document.querySelector('.cart-btn');
+    if (cartBtn) {
+        cartBtn.addEventListener('click', function () {
+            const namaProduk = document.querySelector('.product-info h2').innerText;
 
-        const activeSizeBox = document.querySelector('.size-box.active');
-        const ukuranPorsi = activeSizeBox ? activeSizeBox.querySelector('.size-name').innerText : 'M';
-        const pcsInfo = activeSizeBox ? activeSizeBox.querySelector('.size-pcs').innerText : '6 pcs';
-        
-        let daftarAddon = [];
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                const addonItem = cb.closest('.addon-item');
-                if (addonItem) {
-                    const addonName = addonItem.querySelector('.addon-label span').innerText;
-                    daftarAddon.push(addonName);
+            // --- AMBIL LINK GAMBAR DARI HALAMAN DETAIL ---
+            const productImageEl = document.querySelector('.product-banner img');
+            const produkImgSrc = productImageEl ? productImageEl.src : '';
+
+            const activeSizeBox = document.querySelector('.size-box.active');
+            const ukuranPorsi = activeSizeBox ? activeSizeBox.querySelector('.size-name').innerText : 'M';
+            const pcsInfo = activeSizeBox ? activeSizeBox.querySelector('.size-pcs').innerText : '6 pcs';
+
+            let daftarAddon = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    const addonItem = cb.closest('.addon-item');
+                    if (addonItem) {
+                        const addonName = addonItem.querySelector('.addon-label span').innerText;
+                        daftarAddon.push(addonName);
+                    }
                 }
+            });
+
+            const inputCatatan = document.querySelector('.note-input-box input');
+            const catatanTeks = inputCatatan ? inputCatatan.value.trim() : '';
+
+            const totalHargaText = totalPriceEl ? totalPriceEl.innerText : 'Rp26.000';
+            const hargaAngka = parseRupiah(totalHargaText);
+            const jumlahPorsi = currentQty || 1;
+
+            let detailVarianText = `${ukuranPorsi} (${pcsInfo})`;
+            if (daftarAddon.length > 0) {
+                detailVarianText += ` + ${daftarAddon.join(', ')}`;
             }
+
+            const itemBaru = {
+                nama: namaProduk,
+                varian: detailVarianText,
+                catatan: catatanTeks,
+                qty: jumlahPorsi,
+                harga: hargaAngka,
+                hargaFormatted: totalHargaText,
+                imgSrc: produkImgSrc // Menyimpan link gambar
+            };
+
+            let keranjang = JSON.parse(localStorage.getItem('sabangdor_cart')) || [];
+            keranjang.push(itemBaru);
+
+            localStorage.setItem('sabangdor_cart', JSON.stringify(keranjang));
+            localStorage.setItem('buka_popup_keranjang', 'true');
+
+            window.location.href = 'index.html';
         });
-
-        const inputCatatan = document.querySelector('.note-input-box input');
-        const catatanTeks = inputCatatan ? inputCatatan.value.trim() : '';
-
-        const totalHargaText = totalPriceEl ? totalPriceEl.innerText : 'Rp26.000';
-        const hargaAngka = parseRupiah(totalHargaText);
-        const jumlahPorsi = currentQty || 1;
-
-        let detailVarianText = `${ukuranPorsi} (${pcsInfo})`;
-        if (daftarAddon.length > 0) {
-            detailVarianText += ` + ${daftarAddon.join(', ')}`;
-        }
-
-        const itemBaru = {
-            nama: namaProduk,
-            varian: detailVarianText,
-            catatan: catatanTeks,
-            qty: jumlahPorsi,
-            harga: hargaAngka,
-            hargaFormatted: totalHargaText,
-            imgSrc: produkImgSrc // Menyimpan link gambar
-        };
-
-        let keranjang = JSON.parse(localStorage.getItem('sabangdor_cart')) || [];
-        keranjang.push(itemBaru);
-
-        localStorage.setItem('sabangdor_cart', JSON.stringify(keranjang));
-        localStorage.setItem('buka_popup_keranjang', 'true');
-
-        window.location.href = 'index.html';
-    });
-}
+    }
 });
 
 //bakpao
@@ -314,6 +314,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const totalPriceEl = document.querySelector('.total-price');
     const footerMetaEl = document.getElementById('footer-meta-text');
     const cartBtn = document.querySelector('.cart-btn');
+
+    if (!cartBtn) return; // Jika bukan halaman bakpao, abaikan
 
     const qty = {};
     variantItems.forEach(item => { qty[item.dataset.name] = 0; });

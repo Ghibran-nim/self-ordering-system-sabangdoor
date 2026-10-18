@@ -21,26 +21,23 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSubmit.innerText = 'Memeriksa...';
 
         try {
-            if (typeof supabaseClient === 'undefined') {
-                throw new Error('Supabase client belum terkonfigurasi di config.js');
-            }
-
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
+            // Panggil Backend API Express.js lokal
+            const response = await fetch('http://localhost:5000/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
             });
 
-            if (error || !data.session) {
-                if (errorMessage) {
-                    errorMessage.innerText = 'Email atau kata sandi salah!';
-                    errorMessage.style.display = 'block';
-                } else {
-                    alert('Email atau kata sandi salah!');
-                }
-                btnSubmit.disabled = false;
-                btnSubmit.innerText = 'Masuk';
-                return;
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Email atau kata sandi salah!');
             }
+
+            // Simpan sesi login lokal di browser
+            localStorage.setItem('pegawai_session', JSON.stringify(data.user));
 
             // Redirect ke dashboard pegawai
             window.location.href = 'penjual-page/dashboard.html';
@@ -48,8 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error('Login Error:', err);
             if (errorMessage) {
-                errorMessage.innerText = err.message || 'Terjadi kesalahan sistem.';
+                errorMessage.innerText = err.message || 'Terjadi kesalahan sistem atau server lokal belum menyala.';
                 errorMessage.style.display = 'block';
+            } else {
+                alert(err.message || 'Terjadi kesalahan sistem.');
             }
             btnSubmit.disabled = false;
             btnSubmit.innerText = 'Masuk';
