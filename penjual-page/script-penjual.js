@@ -91,9 +91,12 @@ async function fetchPesananDariSupabase() {
                 created_at,
                 order_items (
                     id_detail,
+                    nama_item,
+                    varian,
+                    catatan,
                     jumlah,
                     subtotal,
-                    menus ( nama_dimsum )
+                    harga_satuan
                 )
             `)
             .order('created_at', { ascending: false });
@@ -125,8 +128,11 @@ async function fetchPesananDariSupabase() {
                 waktu: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                 tanggal: new Date(order.created_at).toLocaleDateString('id-ID'),
                 items: order.order_items ? order.order_items.map(item => ({
-                    nama: item.menus ? item.menus.nama_dimsum : 'Menu Dimsum',
+                    nama: item.nama_item || 'Menu Dimsum',
+                    varian: item.varian || '',
+                    catatan: item.catatan || '',
                     qty: item.jumlah,
+                    hargaSatuan: Number(item.harga_satuan) || 0,
                     totalHargaItem: Number(item.subtotal) || 0
                 })) : []
             };
@@ -191,7 +197,7 @@ async function renderCurrentSection(force = false) {
     if (currentSec === 'dashboard') renderStokMenu();
     else if (currentSec === 'pembayaran') renderPembayaran(semuaPesanan, force);
     else if (currentSec === 'pantau') renderKitchenDisplay(semuaPesanan, riwayat);
-    else if (currentSec === 'menu') { if (force) renderMenuTambahan(); }
+    else if (currentSec === 'menu') { if (force && typeof renderMenuTambahan === 'function') renderMenuTambahan(); }
     else if (currentSec === 'riwayat') renderRiwayat(riwayat);
 }
 
@@ -226,14 +232,13 @@ function renderStokMenu() {
 
     menuList.forEach((item, index) => {
         const isHabis = item.status === 'habis';
-        const dataCustom = item.custom ? getCustomMenus().find(m => m.id === item.id) : null;
-        const imgUrl = item.img || (dataCustom && (dataCustom.img || dataCustom.img_url)) || DEFAULT_MENU_IMG;
+        const imgUrl = item.img || 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80';
 
         html += `
             <div class="stok-card">
                 <div class="stok-left">
-                    <img src="${imgUrl}" class="stok-thumb" alt="${escHtml(item.nama)}">
-                    <span class="stok-name">${escHtml(item.nama)}</span>
+                    <img src="${imgUrl}" class="stok-thumb" alt="${item.nama}">
+                    <span class="stok-name">${item.nama}</span>
                 </div>
                 <button class="btn-toggle-stok ${isHabis ? 'empty' : 'ready'}" onclick="toggleStok(${index})">
                     ${isHabis ? '🔴 HABIS' : '🟢 TERSEDIA'}
@@ -268,9 +273,9 @@ function toggleStok(index) {
 }
 
 function getItemSubtotal(i) {
-    if (i.totalHargaItem && !isNaN(i.totalHargaItem)) return i.totalHargaItem;
-    if (i.hargaSatuan && !isNaN(i.hargaSatuan)) return i.hargaSatuan * (i.qty || 1);
-    if (i.harga && !isNaN(i.harga)) return i.harga * (i.qty || 1);
+    if (i.totalHargaItem && !isNaN(i.totalHargaItem) && i.totalHargaItem > 0) return i.totalHargaItem;
+    if (i.hargaSatuan && !isNaN(i.hargaSatuan) && i.hargaSatuan > 0) return i.hargaSatuan * (i.qty || 1);
+    if (i.harga && !isNaN(i.harga) && i.harga > 0) return i.harga * (i.qty || 1);
     return 0;
 }
 
@@ -372,12 +377,7 @@ async function konfirmasiPembayaran(dbIdOrder) {
     if (typeof supabaseClient === 'undefined') return;
 
     try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) {
-            alert("Session pegawai berakhir. Silakan login kembali.");
-            window.location.href = 'login-pegawai.html';
-            return;
-        }
+        const numericId = parseInt(dbIdOrder, 10);
 
         const { data, error } = await supabaseClient
             .from('orders')
@@ -385,7 +385,7 @@ async function konfirmasiPembayaran(dbIdOrder) {
                 status_pembayaran: 'lunas',
                 status_pesanan: 'disiapkan'
             })
-            .eq('id_order', dbIdOrder)
+            .eq('id_order', numericId)
             .select();
 
         if (error) {
@@ -395,7 +395,7 @@ async function konfirmasiPembayaran(dbIdOrder) {
         }
 
         if (!data || data.length === 0) {
-            alert("Update tidak mengubah data apa pun.");
+            alert("Update tidak mengubah data apa pun. Pastikan Anda sudah menjalankan SQL Policy UPDATE di Supabase Editor.");
             return;
         }
 
@@ -465,11 +465,7 @@ async function tandaiSelesaiDapur(dbIdOrder) {
     if (typeof supabaseClient === 'undefined') return;
 
     try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) {
-            window.location.href = 'login-pegawai.html';
-            return;
-        }
+        const numericId = parseInt(dbIdOrder, 10);
 
         const { data, error } = await supabaseClient
             .from('orders')
@@ -477,7 +473,7 @@ async function tandaiSelesaiDapur(dbIdOrder) {
                 status_pembayaran: 'lunas',
                 status_pesanan: 'selesai'
             })
-            .eq('id_order', dbIdOrder)
+            .eq('id_order', numericId)
             .select();
 
         if (error) {
@@ -548,7 +544,7 @@ function renderRiwayat(riwayatList) {
         html += `
             <div class="order-card-merchant" style="flex-direction:row; justify-content:space-between; align-items:center;">
                 <div>
-                    <div style="font-weight:800; font-size:0.85rem;">#${item.idOrder} (${item.namaPelanggan} • ${item.metodeBayar})</div>
+                    <div style="font-weight:800; font-size:0.85rem;">#${item.idOrder} (${item.namaPelanggan} - ${item.metodeBayar})</div>
                     <div style="font-size:0.75rem; color:var(--text-muted);">${item.tanggal} ${item.waktu} WIB</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -661,12 +657,8 @@ function cetakStrukLangsung(order) {
 }
 
 // ==========================================
-// 6. MENU TAMBAHAN (kasir tambah / ubah / hapus menu)
+// 6. MENU TAMBAHAN & HELPER
 // ==========================================
-let mtEditId = null;
-let mtImg = '';
-let mtMsgTimer = null;
-
 function mtKompresGambar(file, maxSize = 500, quality = 0.75) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -686,354 +678,4 @@ function mtKompresGambar(file, maxSize = 500, quality = 0.75) {
         };
         reader.readAsDataURL(file);
     });
-}
-
-function mtPesan(teks, isError) {
-    const el = document.getElementById('mt-msg');
-    if (!el) return;
-    el.textContent = teks;
-    el.className = 'mt-msg show ' + (isError ? 'error' : 'ok');
-    clearTimeout(mtMsgTimer);
-    mtMsgTimer = setTimeout(() => { el.className = 'mt-msg'; }, 3500);
-}
-
-function mtKategoriTersedia() {
-    const bawaan = Object.keys(KATEGORI_BAWAAN);
-    const custom = [];
-    getCustomMenus().forEach(m => {
-        if (!bawaan.includes(m.kategori) && !custom.includes(m.kategori)) custom.push(m.kategori);
-    });
-    return bawaan.concat(custom);
-}
-
-function renderMenuTambahan() {
-    const container = document.getElementById('container-menu-tambahan');
-    if (!container) return;
-
-    if (!document.getElementById('mt-form-card')) {
-        container.innerHTML = `
-            <div class="card" id="mt-form-card">
-                <div class="card-title" id="mt-form-title">➕ Tambah Menu Baru</div>
-                <div class="card-sub">Menu langsung tampil di halaman pembeli lengkap dengan detail menunya</div>
-
-                <div class="mt-field">
-                    <label>Foto menu</label>
-                    <div class="mt-photo">
-                        <img id="mt-photo-preview" src="${DEFAULT_MENU_IMG}" alt="Foto menu">
-                        <div>
-                            <button type="button" class="btn-upload-custom" onclick="document.getElementById('mt-file').click()">📷 Pilih Foto</button>
-                            <input type="file" id="mt-file" accept="image/*" style="display:none;">
-                            <div class="mt-hint">Kosongkan jika belum ada foto</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-field">
-                    <label for="mt-nama">Nama menu</label>
-                    <input type="text" id="mt-nama" class="mt-input" maxlength="40" placeholder="Contoh: Siomay Ayam">
-                </div>
-
-                <div class="mt-field">
-                    <label for="mt-kategori">Kategori</label>
-                    <select id="mt-kategori" class="mt-input" onchange="mtToggleKategoriBaru()"></select>
-                    <input type="text" id="mt-kategori-baru" class="mt-input" maxlength="24" placeholder="Nama kategori baru, contoh: Minuman" style="display:none; margin-top:8px;">
-                </div>
-
-                <div class="mt-field">
-                    <label for="mt-deskripsi">Deskripsi singkat</label>
-                    <textarea id="mt-deskripsi" class="mt-input" rows="2" maxlength="140" placeholder="Contoh: Dimsum ayam lembut dengan saus spesial."></textarea>
-                </div>
-
-                <div class="mt-field">
-                    <label>Ukuran / porsi & harga</label>
-                    <div class="mt-hint" style="margin-bottom:8px;">Menu satu harga? Isi satu baris saja, misalnya Reguler • 1 porsi • 10000.</div>
-                    <div id="mt-ukuran-rows"></div>
-                    <button type="button" class="mt-btn-add" onclick="mtTambahUkuran()">+ Tambah ukuran</button>
-                </div>
-
-                <div class="mt-field">
-                    <label for="mt-gratis">Bonus gratis (opsional)</label>
-                    <input type="text" id="mt-gratis" class="mt-input" maxlength="24" placeholder="Contoh: Free Chilli Oil">
-                </div>
-
-                <div class="mt-field">
-                    <label>Tambahan opsional (opsional)</label>
-                    <div id="mt-addon-rows"></div>
-                    <button type="button" class="mt-btn-add" onclick="mtTambahAddon()">+ Tambah pilihan tambahan</button>
-                </div>
-
-                <div id="mt-msg" class="mt-msg"></div>
-
-                <div class="mt-actions">
-                    <button type="button" class="btn-primary-merchant" style="flex:2;" onclick="mtSimpan()">Simpan Menu</button>
-                    <button type="button" id="mt-btn-batal" class="btn-outline-merchant" style="flex:1; display:none;" onclick="mtResetForm()">Batal</button>
-                </div>
-            </div>
-
-            <div class="card" style="margin-top:16px;">
-                <div class="card-title">Menu Tambahan Saya (<span id="mt-count">0</span>)</div>
-                <div id="mt-list" class="mt-list"></div>
-            </div>
-        `;
-
-        const fileInput = document.getElementById('mt-file');
-        if (fileInput) {
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                try {
-                    mtImg = await mtKompresGambar(file);
-                    document.getElementById('mt-photo-preview').src = mtImg;
-                } catch (err) {
-                    mtPesan('Gagal membaca gambar', true);
-                }
-            });
-        }
-    }
-
-    mtRenderKategoriOptions();
-    mtRenderListCustom();
-}
-
-function mtRenderKategoriOptions(selected) {
-    const sel = document.getElementById('mt-kategori');
-    if (!sel) return;
-    const katList = mtKategoriTersedia();
-    let html = katList.map(k => `<option value="${escHtml(k)}">${escHtml(k)}</option>`).join('');
-    html += `<option value="__baru__">+ Buat kategori baru...</option>`;
-    sel.innerHTML = html;
-    if (selected) sel.value = selected;
-    mtToggleKategoriBaru();
-}
-
-function mtToggleKategoriBaru() {
-    const sel = document.getElementById('mt-kategori');
-    const inputBaru = document.getElementById('mt-kategori-baru');
-    if (!sel || !inputBaru) return;
-    inputBaru.style.display = sel.value === '__baru__' ? 'block' : 'none';
-}
-
-function mtTambahUkuran(nama = '', ket = '', harga = '') {
-    const container = document.getElementById('mt-ukuran-rows');
-    if (!container) return;
-    const row = document.createElement('div');
-    row.className = 'mt-row';
-    row.innerHTML = `
-        <input type="text" class="mt-input mt-u-nama" placeholder="Ukuran (S)" value="${escHtml(nama)}">
-        <input type="text" class="mt-input mt-u-ket" placeholder="Isi (3 pcs)" value="${escHtml(ket)}">
-        <input type="number" class="mt-input mt-u-harga" placeholder="Harga" value="${harga}">
-        <button type="button" class="mt-row-del" onclick="this.parentElement.remove()">×</button>
-    `;
-    container.appendChild(row);
-}
-
-function mtTambahAddon(nama = '', harga = '') {
-    const container = document.getElementById('mt-addon-rows');
-    if (!container) return;
-    const row = document.createElement('div');
-    row.className = 'mt-row';
-    row.innerHTML = `
-        <input type="text" class="mt-input mt-a-nama" placeholder="Nama addon" value="${escHtml(nama)}">
-        <input type="number" class="mt-input mt-a-harga" placeholder="Harga" value="${harga}">
-        <button type="button" class="mt-row-del" onclick="this.parentElement.remove()">×</button>
-    `;
-    container.appendChild(row);
-}
-
-function mtAmbilDataForm() {
-    const nama = (document.getElementById('mt-nama').value || '').trim();
-
-    let kategori = document.getElementById('mt-kategori').value;
-    if (kategori === '__baru__') {
-        kategori = (document.getElementById('mt-kategori-baru').value || '').trim();
-    }
-
-    const deskripsi = (document.getElementById('mt-deskripsi').value || '').trim();
-    const gratis = (document.getElementById('mt-gratis').value || '').trim();
-
-    const ukuran = [];
-    document.querySelectorAll('#mt-ukuran-rows .mt-row').forEach(r => {
-        const uNama = (r.querySelector('.mt-u-nama').value || '').trim();
-        const uKet = (r.querySelector('.mt-u-ket').value || '').trim();
-        const uHarga = Number(r.querySelector('.mt-u-harga').value) || 0;
-        if (uNama || uHarga > 0) {
-            ukuran.push({ nama: uNama || 'Reguler', ket: uKet, harga: uHarga });
-        }
-    });
-
-    const addon = [];
-    document.querySelectorAll('#mt-addon-rows .mt-row').forEach(r => {
-        const aNama = (r.querySelector('.mt-a-nama').value || '').trim();
-        const aHarga = Number(r.querySelector('.mt-a-harga').value) || 0;
-        if (aNama) {
-            addon.push({ nama: aNama, harga: aHarga });
-        }
-    });
-
-    return { nama, kategori, deskripsi, gratis, ukuran, addon };
-}
-
-// INTEGRASI SUPABASE PADA FUNGSI SIMPAN & HAPUS
-async function mtSimpan() {
-    const data = mtAmbilDataForm();
-
-    if (!data.nama) { mtPesan('Nama menu wajib diisi.', true); return; }
-    if (!data.kategori) { mtPesan('Pilih atau ketik kategori baru.', true); return; }
-    if (data.ukuran.length === 0) { mtPesan('Isi minimal satu ukuran/porsi & harga.', true); return; }
-
-    const itemObj = {
-        id: mtEditId || ('custom-' + Math.random().toString(36).substring(2, 9)),
-        nama: data.nama,
-        kategori: data.kategori,
-        deskripsi: data.deskripsi,
-        img: mtImg || DEFAULT_MENU_IMG,
-        gratis: data.gratis,
-        ukuran: data.ukuran,
-        addon: data.addon
-    };
-
-    // Panggil helper simpan ke Supabase & LocalStorage
-    let ok = false;
-    if (typeof saveCustomMenuToSupabase === 'function') {
-        ok = await saveCustomMenuToSupabase(itemObj);
-    } else {
-        let list = getCustomMenus();
-        if (mtEditId) {
-            const idx = list.findIndex(m => m.id === mtEditId);
-            if (idx >= 0) list[idx] = itemObj;
-            else list.push(itemObj);
-        } else {
-            list.push(itemObj);
-        }
-        ok = saveCustomMenus(list);
-    }
-
-    if (!ok) return;
-
-    // Tambahkan status ketersediaan ke stok menu lokal
-    let menuStatus = JSON.parse(localStorage.getItem('sabangdor_menu_status')) || masterMenuSabangdor;
-    const idxStok = menuStatus.findIndex(m => m.id === itemObj.id);
-    if (idxStok >= 0) {
-        menuStatus[idxStok].nama = itemObj.nama;
-        menuStatus[idxStok].custom = true;
-        menuStatus[idxStok].img = itemObj.img;
-    } else {
-        menuStatus.push({
-            id: itemObj.id,
-            nama: itemObj.nama,
-            harga: hargaMulai(itemObj),
-            status: 'tersedia',
-            custom: true,
-            img: itemObj.img
-        });
-    }
-    localStorage.setItem('sabangdor_menu_status', JSON.stringify(menuStatus));
-
-    mtPesan(mtEditId ? 'Menu berhasil diperbarui!' : 'Menu berhasil ditambahkan dan tersimpan ke Supabase!');
-    mtResetForm();
-    mtRenderKategoriOptions();
-    mtRenderListCustom();
-}
-
-function mtEdit(id) {
-    const menu = getCustomMenus().find(m => m.id === id);
-    if (!menu) return;
-
-    mtEditId = menu.id;
-    mtImg = menu.img || menu.img_url || '';
-
-    document.getElementById('mt-form-title').textContent = '✏️ Ubah Menu Tambahan';
-    document.getElementById('mt-nama').value = menu.nama || '';
-    document.getElementById('mt-deskripsi').value = menu.deskripsi || '';
-    document.getElementById('mt-gratis').value = menu.gratis || '';
-    document.getElementById('mt-photo-preview').src = mtImg || DEFAULT_MENU_IMG;
-    document.getElementById('mt-btn-batal').style.display = 'block';
-
-    mtRenderKategoriOptions(menu.kategori);
-
-    const uBox = document.getElementById('mt-ukuran-rows');
-    uBox.innerHTML = '';
-    (menu.ukuran || []).forEach(u => mtTambahUkuran(u.nama, u.ket, u.harga));
-
-    const aBox = document.getElementById('mt-addon-rows');
-    aBox.innerHTML = '';
-    (menu.addon || []).forEach(a => mtTambahAddon(a.nama, a.harga));
-
-    document.getElementById('mt-form-card').scrollIntoView({ behavior: 'smooth' });
-}
-
-async function mtHapus(id) {
-    if (!confirm('Hapus menu ini dari daftar?')) return;
-
-    if (typeof deleteCustomMenuFromSupabase === 'function') {
-        await deleteCustomMenuFromSupabase(id);
-    } else {
-        let list = getCustomMenus().filter(m => m.id !== id);
-        saveCustomMenus(list);
-    }
-
-    let menuStatus = JSON.parse(localStorage.getItem('sabangdor_menu_status')) || [];
-    menuStatus = menuStatus.filter(m => m.id !== id);
-    localStorage.setItem('sabangdor_menu_status', JSON.stringify(menuStatus));
-
-    if (mtEditId === id) mtResetForm();
-    mtRenderKategoriOptions();
-    mtRenderListCustom();
-    mtPesan('Menu berhasil dihapus!');
-}
-
-function mtResetForm() {
-    mtEditId = null;
-    mtImg = '';
-    document.getElementById('mt-form-title').textContent = '➕ Tambah Menu Baru';
-    document.getElementById('mt-nama').value = '';
-    document.getElementById('mt-deskripsi').value = '';
-    document.getElementById('mt-gratis').value = '';
-    document.getElementById('mt-kategori-baru').value = '';
-    document.getElementById('mt-photo-preview').src = DEFAULT_MENU_IMG;
-    document.getElementById('mt-file').value = '';
-    document.getElementById('mt-btn-batal').style.display = 'none';
-
-    const uBox = document.getElementById('mt-ukuran-rows');
-    uBox.innerHTML = '';
-    mtTambahUkuran('Reguler', '1 porsi', '');
-
-    const aBox = document.getElementById('mt-addon-rows');
-    aBox.innerHTML = '';
-
-    mtRenderKategoriOptions();
-}
-
-function mtRenderListCustom() {
-    const list = getCustomMenus();
-    const countEl = document.getElementById('mt-count');
-    const container = document.getElementById('mt-list');
-
-    if (countEl) countEl.textContent = list.length;
-    if (!container) return;
-
-    if (list.length === 0) {
-        container.innerHTML = `<div class="empty-info">Belum ada menu tambahan yang dibuat.</div>`;
-        return;
-    }
-
-    let html = '';
-    list.forEach(m => {
-        const minHarga = hargaMulai(m);
-        const imgUrl = m.img || m.img_url || DEFAULT_MENU_IMG;
-        html += `
-            <div class="mt-card-item">
-                <img src="${imgUrl}" alt="${escHtml(m.nama)}" class="mt-item-thumb">
-                <div class="mt-item-info">
-                    <div class="mt-item-title">${escHtml(m.nama)}</div>
-                    <div class="mt-item-sub">${escHtml(m.kategori)} • Mulai ${rupiah(minHarga)}</div>
-                </div>
-                <div class="mt-item-actions">
-                    <button type="button" class="mt-btn-edit" onclick="mtEdit('${m.id}')">Ubah</button>
-                    <button type="button" class="mt-btn-del" onclick="mtHapus('${m.id}')">Hapus</button>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
 }

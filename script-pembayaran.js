@@ -1,12 +1,12 @@
 /**
  * File: js/script-pembayaran.js
- * Deskripsi: Mengelola alur checkout, konfirmasi pembayaran, dan menyimpan data transaksi ke database Supabase.
+ * Deskripsi: Mengelola alur checkout, konfirmasi pembayaran, dan menyimpan data transaksi ke database Supabase via RPC.
  */
 
-const CART_KEY = "sabangdor_cart";
-const ORDER_KEY = "sabangdor_active_order";
-const DASHBOARD_KEY = "sabangdor_semua_pesanan";
-const QRIS_STORAGE_KEY = "sabangdor_custom_qris";
+var CART_KEY = window.CART_KEY || "sabangdor_cart";
+var ORDER_KEY = window.ORDER_KEY || "sabangdor_active_order";
+var DASHBOARD_KEY = window.DASHBOARD_KEY || "sabangdor_semua_pesanan";
+var QRIS_STORAGE_KEY = window.QRIS_STORAGE_KEY || "sabangdor_custom_qris";
 
 function getOrderState() {
     let saved = null;
@@ -38,20 +38,29 @@ function loadCartItems() {
         if (!Array.isArray(raw)) return [];
         return raw.filter(i => i && Number(i.qty) > 0).map(i => {
             const qty = Number(i.qty) || 1;
-            const rawHarga = Number(i.harga) || 0;
+            const rawHarga = Number(i.harga) || Number(i.hargaSatuan) || Number(i.totalHargaItem) || 0;
 
             const unitHarga = (i.unitHarga && Number(i.unitHarga) > 0)
                 ? Number(i.unitHarga)
                 : (rawHarga > 0 && rawHarga % qty === 0 ? rawHarga / qty : rawHarga);
 
+            const totalItemPrice = (i.totalHargaItem && Number(i.totalHargaItem) > 0)
+                ? Number(i.totalHargaItem)
+                : (unitHarga * qty);
+
             return {
-                id_menu: i.id_menu || 1, // Default ID Menu jika tidak terset
+                id_menu: i.id_menu || null,
+                tipe: i.tipe || (i.nama && i.nama.toLowerCase().includes('bakpao') ? 'bakpao' : 'dimsum'),
+                produk: i.produk || i.slug || '',
+                ukuran: i.ukuran || i.size || 'S',
+                rincian: i.rincian || {},
+                addon: i.addon || [],
                 nama: i.nama || "Menu",
                 varian: i.varian || i.ket || i.size || "",
                 catatan: i.catatan || i.note || "",
                 qty: qty,
                 hargaSatuan: unitHarga,
-                totalHargaItem: unitHarga * qty
+                totalHargaItem: totalItemPrice
             };
         });
     } catch {
@@ -214,7 +223,6 @@ function render() {
             btn.disabled = true;
             btn.innerText = "Mengirim Pesanan...";
 
-            // Simpan ke Supabase & LocalStorage
             const supabaseResult = await simpanPesananKeSupabase(state.nama, "qris", state.items, total);
 
             kirimKeDashboardPenjual(state, total, "Diproses (Lunas QRIS)", supabaseResult);
@@ -264,7 +272,6 @@ function render() {
             btn.disabled = true;
             btn.innerText = "Mengirim Pesanan...";
 
-            // Simpan ke Supabase & LocalStorage
             const supabaseResult = await simpanPesananKeSupabase(state.nama, "cash", state.items, total);
 
             kirimKeDashboardPenjual(state, total, "Menunggu Tunai", supabaseResult);
@@ -288,7 +295,7 @@ function render() {
         if (title) title.textContent = "Pesanan Dikirim";
         if (outletSub) outletSub.textContent = "Terima Kasih!";
 
-        const displayAntrean = state.queueNum ? `#${state.queueNum}` : state.orderId;
+        const displayAntrean = state.queueNum ? `SB-${state.queueNum}` : state.orderId;
 
         main.innerHTML = `
             <section class="card" style="text-align:center; padding:24px 16px;">
@@ -320,7 +327,7 @@ function kirimKeDashboardPenjual(state, totalHarga, statusAwal, supabaseResult) 
     try {
         let semuaPesanan = JSON.parse(localStorage.getItem(DASHBOARD_KEY)) || [];
         const pesananBaru = {
-            idOrder: supabaseResult ? `ANT-0${supabaseResult.nomorAntrean}` : state.orderId,
+            idOrder: supabaseResult ? `SB-${supabaseResult.nomorAntrean}` : state.orderId,
             waktu: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
             tanggal: new Date().toLocaleDateString("id-ID"),
             items: state.items,
@@ -337,55 +344,74 @@ function kirimKeDashboardPenjual(state, totalHarga, statusAwal, supabaseResult) 
     }
 }
 
-// 6. FUNGSI INTEGRASI SUPABASE (INSERT DIRECT KE TABEL orders & order_items)
+// 6. FUNGSI INTEGRASI SUPABASE (RPC buat_pesanan)
 async function simpanPesananKeSupabase(namaPembeli, metodeBayar, itemsKeranjang, totalHarga) {
     if (typeof supabaseClient === 'undefined') {
-        console.warn("supabaseClient belum terkonfigurasi di config.js. Menggunakan simpan lokal.");
+        console.warn("supabaseClient belum terkonfigurasi di config.js.");
         return null;
     }
 
     try {
         const tipeBayarEnum = metodeBayar.toLowerCase().includes('qris') ? 'qris' : 'cash';
 
-        // 1. Insert ke tabel orders
-        const { data: orderData, error: orderError } = await supabaseClient
-            .from('orders')
-            .insert([
-                {
-                    nama_pembeli: namaPembeli,
-                    tipe_pembayaran: tipeBayarEnum,
-                    status_pembayaran: 'pending',
-                    status_pesanan: 'menunggu',
-                    total_harga: totalHarga
-                }
-            ])
-            .select()
-            .single();
+        const itemsPayload = itemsKeranjang.map(item => {
+            let tipe = item.tipe || 'dimsum';
+            if (item.nama && item.nama.toLowerCase().includes('bakpao')) {
+                tipe = 'bakpao';
+            }
 
-        if (orderError) throw orderError;
+            let produk = item.produk || item.slug || '';
+            if (!produk) {
+                produk = (tipe === 'bakpao') ? 'bakpao' : 'dimsum-mentai-ori';
+            }
 
-        const newOrderId = orderData.id_order;
-        const nomorAntrean = orderData.nomor_antrean;
+            let ukuran = (item.ukuran || item.size || 'S').toString().toUpperCase().trim();
+            if (!['S', 'M', 'XL'].includes(ukuran)) {
+                ukuran = 'S';
+            }
 
-        // 2. Insert ke tabel order_items
-        const orderItemsPayload = itemsKeranjang.map(item => ({
-            id_order: newOrderId,
-            id_menu: item.id_menu || 1,
-            jumlah: item.qty || 1,
-            subtotal: item.totalHargaItem || (item.hargaSatuan * item.qty) || 0
-        }));
+            const qty = Number(item.qty) || 1;
+            const unitPrice = Number(item.hargaSatuan) || Number(item.harga) || 0;
 
-        const { error: itemsError } = await supabaseClient
-            .from('order_items')
-            .insert(orderItemsPayload);
+            return {
+                id_menu: item.id_menu || null,
+                nama: item.nama || "Menu",
+                tipe: tipe,
+                produk: produk,
+                ukuran: ukuran,
+                qty: qty,
+                harga: unitPrice,
+                harga_satuan: unitPrice,
+                subtotal: unitPrice * qty,
+                rincian: item.rincian && typeof item.rincian === 'object' ? item.rincian : {},
+                addon: Array.isArray(item.addon) ? item.addon : [],
+                catatan: (item.catatan || item.note || '').toString(),
+                varian: item.varian || ''
+            };
+        });
 
-        if (itemsError) throw itemsError;
+        const { data, error } = await supabaseClient.rpc('buat_pesanan', {
+            p_nama: namaPembeli.toString().trim(),
+            p_tipe: tipeBayarEnum,
+            p_items: itemsPayload,
+            p_total_klien: Number(totalHarga)
+        });
 
-        console.log(`Pesanan sukses tersimpan di Supabase! ID Order: ${newOrderId}, Nomor Antrean: #${nomorAntrean}`);
-        return { newOrderId, nomorAntrean };
+        if (error) {
+            console.error("Detail Error RPC Supabase:", error);
+            throw error;
+        }
+
+        if (data && data.length > 0) {
+            const res = data[0];
+            console.log(`Pesanan sukses tersimpan di Supabase! ID Order: ${res.o_id}, Nomor Antrean: SB-${res.o_antrean}`);
+            return { newOrderId: res.o_id, nomorAntrean: res.o_antrean };
+        }
+
+        return null;
 
     } catch (err) {
-        console.error("Gagal menyimpan pesanan ke Supabase:", err);
+        console.error("Gagal menyimpan pesanan ke Supabase via RPC:", err);
         return null;
     }
 }
