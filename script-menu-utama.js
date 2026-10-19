@@ -29,7 +29,46 @@ window.addEventListener('DOMContentLoaded', () => {
     updateTampilanStokPembeli();
     renderPopupKeranjang();
     initStaffTrigger();
+    initRuangPopupKeranjang();
+
+    // Ambil menu custom terbaru dari Supabase, lalu cek ulang tiap 5 detik
+    // supaya status HABIS dari kasir cepat muncul di HP pembeli.
+    segarkanMenuCustom(true);
+    setInterval(() => segarkanMenuCustom(false), 5000);
 });
+
+async function segarkanMenuCustom(paksa) {
+    if (document.hidden && !paksa) return;
+    if (typeof getCustomMenusFromSupabase !== 'function') return;
+
+    const sebelum = localStorage.getItem(CUSTOM_MENU_KEY);
+    await getCustomMenusFromSupabase();
+    const sesudah = localStorage.getItem(CUSTOM_MENU_KEY);
+
+    if (paksa || sebelum !== sesudah) {
+        renderMenuCustom();
+        updateTampilanStokPembeli();
+    }
+}
+
+// Popup keranjang menempel di bawah layar (position: fixed). Beri ruang kosong
+// di bawah daftar menu sebesar tinggi popup, supaya menu paling bawah tidak tertutup.
+function sesuaikanRuangPopup() {
+    const popup = document.getElementById('cart-popup');
+    const wrap = document.querySelector('.mobile-container');
+    if (!popup || !wrap) return;
+    const tinggi = popup.classList.contains('hidden') ? 0 : popup.offsetHeight;
+    wrap.style.paddingBottom = tinggi ? (tinggi + 24) + 'px' : '';
+}
+
+function initRuangPopupKeranjang() {
+    const popup = document.getElementById('cart-popup');
+    if (!popup) return;
+    if (window.ResizeObserver) new ResizeObserver(sesuaikanRuangPopup).observe(popup);
+    new MutationObserver(sesuaikanRuangPopup).observe(popup, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', sesuaikanRuangPopup);
+    sesuaikanRuangPopup();
+}
 
 // 3. FUNGSI RENDER REKOMENDASI (Dibiarkan kosong/aman jika section-nya masih ada di HTML)
 function renderRekomendasiAI() {
@@ -166,6 +205,14 @@ function updateTampilanStokPembeli() {
         }
     });
 
+    // Menu tambahan (custom) yang ditandai habis oleh kasir
+    getCustomMenus().forEach(m => {
+        if (!m.habis) return;
+        document.querySelectorAll('.card-menu[data-menu-id]').forEach(card => {
+            if (card.dataset.menuId === String(m.id)) tandaiKartuHabis(card);
+        });
+    });
+
     menuStatus.forEach(item => {
         if (item.status === 'habis') {
             const cards = document.querySelectorAll('.card-menu');
@@ -187,6 +234,19 @@ function updateTampilanStokPembeli() {
             });
         }
     });
+}
+
+function tandaiKartuHabis(card) {
+    card.style.opacity = '0.5';
+    card.style.filter = 'grayscale(100%)';
+    const btn = card.querySelector('.btn-pilih');
+    if (btn) {
+        btn.innerText = 'Habis';
+        btn.style.backgroundColor = '#94A3B8';
+        btn.style.color = '#FFFFFF';
+        btn.style.pointerEvents = 'none';
+        btn.removeAttribute('href');
+    }
 }
 
 // 7. Kosongkan Keranjang
@@ -240,16 +300,19 @@ window.addEventListener('storage', (e) => {
 });
 
 // 10. Menu Tambahan dari Kasir: kartu menu & tab kategori dibuat otomatis
+// Format sama seperti menu lain, contoh: "S / M / XL • 3 / 6 / 16 pcs"
 function teksVarianCustom(menu) {
     const ukuran = menu.ukuran || [];
     const nama = ukuran.map(u => u.nama).join(' / ');
-    const ket = ukuran.map(u => u.ket).filter(Boolean).join(' / ');
-    return ket ? `${nama}\n${ket}` : nama;
+    const porsi = ukuran.map(u => String(u.porsi || u.ket || '').trim()).filter(Boolean);
+    if (!porsi.length) return nama;
+    const semuaAngka = porsi.every(p => /^\d+$/.test(p));
+    return `${nama} • ${porsi.join(' / ')}${semuaAngka ? ' pcs' : ''}`;
 }
 
 function kartuMenuCustom(menu) {
     return `
-        <div class="card-menu" data-custom="1">
+        <div class="card-menu" data-custom="1" data-menu-id="${escHtml(menu.id)}">
             <img src="${menu.img || DEFAULT_MENU_IMG}" alt="${escHtml(menu.nama)}" class="card-img">
             <div class="card-content">
                 <h3 class="card-title">${escHtml(menu.nama)}</h3>

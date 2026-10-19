@@ -1,9 +1,20 @@
 /**
  * File: menu-custom-store.js
- * Penyimpanan & helper bersama untuk "Menu Tambahan"
- * Terhubung langsung ke Supabase (tabel `menu_custom`) & localStorage.
+ * Penyimpanan & helper bersama untuk "Menu Tambahan" (dipakai dashboard kasir,
+ * halaman menu utama pembeli, dan halaman detail menu otomatis).
+ *
+ * Bentuk data satu menu:
+ * {
+ *   id: 'custom-lx3k2a',
+ *   nama: 'Siomay Ayam',
+ *   kategori: 'Dimsum aja',          // kategori baru otomatis jadi tab baru di menu utama
+ *   deskripsi: '...',
+ *   img: 'data:image/jpeg;base64,...',
+ *   gratis: 'Free Chilli Oil',       // opsional
+ *   ukuran: [ { nama:'S', ket:'3 pcs', harga:13000 }, ... ],
+ *   addon:  [ { nama:'Extra Mentai', harga:3000 }, ... ]
+ * }
  */
-
 const CUSTOM_MENU_KEY = 'sabangdor_custom_menus';
 const MENU_STATUS_KEY = 'sabangdor_menu_status';
 const DEFAULT_MENU_IMG = 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80';
@@ -14,10 +25,6 @@ const KATEGORI_BAWAAN = {
     'Dimsum aja': 'section-dimsum-aja',
     'Bakpao': 'section-bakpao'
 };
-
-// ==========================================
-// 1. HELPER LOKAL & FORMATTING
-// ==========================================
 
 function getCustomMenus() {
     try {
@@ -60,126 +67,109 @@ function slugKategori(nama) {
     return String(nama).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'lainnya';
 }
 
-// ==========================================
-// 2. INTEGRASI SUPABASE (CLOUD SYNC)
-// ==========================================
+/* =====================================================================
+ * SINKRONISASI SUPABASE (tabel: menu_custom)
+ * Dipanggil oleh script-penjual.js. localStorage dipakai sebagai cache
+ * supaya getCustomMenus() tetap sinkron & halaman pembeli tetap cepat.
+ * Jika tabel belum dibuat / koneksi gagal, data tetap tersimpan di
+ * localStorage (fallback) agar fitur tidak mati.
+ * ===================================================================== */
+const CUSTOM_MENU_TABLE = 'menu_custom';
 
-/**
- * Mengambil seluruh menu custom dari tabel `menu_custom` Supabase.
- * Sekaligus menyinkronkan data ke localStorage sebagai fallback.
- */
+function _sbReady() {
+    return typeof supabaseClient !== 'undefined' && supabaseClient;
+}
+
+// Baris database -> objek menu yang dipakai UI
+function _rowToMenu(row) {
+    return {
+        id: row.id,
+        nama: row.nama,
+        kategori: row.kategori,
+        deskripsi: row.deskripsi || '',
+        img: row.img_url || DEFAULT_MENU_IMG,
+        img_url: row.img_url || DEFAULT_MENU_IMG,
+        gratis: row.gratis || '',
+        ukuran: Array.isArray(row.ukuran) ? row.ukuran : [],
+        addon: Array.isArray(row.addon) ? row.addon : [],
+        habis: !!row.habis
+    };
+}
+
+// Objek menu -> baris database
+function _menuToRow(menu) {
+    const row = {
+        id: String(menu.id),
+        nama: menu.nama,
+        kategori: menu.kategori,
+        deskripsi: menu.deskripsi || '',
+        img_url: menu.img || menu.img_url || DEFAULT_MENU_IMG,
+        gratis: menu.gratis || '',
+        ukuran: Array.isArray(menu.ukuran) ? menu.ukuran : [],
+        addon: Array.isArray(menu.addon) ? menu.addon : []
+    };
+    if (typeof menu.habis === 'boolean') row.habis = menu.habis;
+    return row;
+}
+
 async function getCustomMenusFromSupabase() {
+    if (!_sbReady()) return getCustomMenus();
     try {
-        if (typeof supabaseClient === 'undefined') {
-            console.warn('supabaseClient belum diinisialisasi. Menggunakan data localStorage.');
-            return getCustomMenus();
-        }
-
         const { data, error } = await supabaseClient
-            .from('menu_custom')
-            .select('*');
+            .from(CUSTOM_MENU_TABLE)
+            .select('*')
+            .order('created_at', { ascending: true });
+        if (error) throw error;
 
-        if (error) {
-            console.error('Gagal mengambil menu custom dari Supabase:', error.message);
-            return getCustomMenus();
-        }
-
-        if (data) {
-            // Petakan kolom `img_url` kembali ke atribut `img` untuk kompatibilitas frontend
-            const formattedData = data.map(item => ({
-                ...item,
-                img: item.img_url || item.img || DEFAULT_MENU_IMG
-            }));
-
-            localStorage.setItem(CUSTOM_MENU_KEY, JSON.stringify(formattedData));
-            return formattedData;
-        }
-
-        return [];
+        const list = (data || []).map(_rowToMenu);
+        // simpan ke cache lokal tanpa alert kalau penuh
+        try { localStorage.setItem(CUSTOM_MENU_KEY, JSON.stringify(list)); } catch (e) {}
+        return list;
     } catch (err) {
-        console.error('Error koneksi Supabase:', err);
+        console.warn('Gagal ambil menu custom dari Supabase, pakai cache lokal:', err.message || err);
         return getCustomMenus();
     }
 }
 
-/**
- * Menyimpan/memperbarui satu menu custom ke database Supabase (`menu_custom`)
- * dan menyinkronkannya ke localStorage.
- */
-async function saveCustomMenuToSupabase(menuData) {
+async function saveCustomMenuToSupabase(menu) {
+    // 1) Simpan ke cache lokal dulu
+    const list = getCustomMenus();
+    const idx = list.findIndex(m => String(m.id) === String(menu.id));
+    const lokal = { ...menu, img_url: menu.img || menu.img_url };
+    if (idx >= 0) list[idx] = lokal; else list.push(lokal);
+    const okLokal = saveCustomMenus(list);
+    if (!okLokal) return false;
+
+    // 2) Kirim ke Supabase
+    if (!_sbReady()) return true; // mode lokal saja
     try {
-        if (typeof supabaseClient === 'undefined') {
-            alert('Koneksi database (Supabase) belum siap.');
-            return false;
-        }
-
-        // Susun payload sesuai dengan nama kolom pada tabel PostgreSQL/Supabase
-        const payload = {
-            id: menuData.id || ('custom-' + Math.random().toString(36).substring(2, 9)),
-            nama: menuData.nama,
-            kategori: menuData.kategori,
-            deskripsi: menuData.deskripsi || '',
-            img_url: menuData.img || menuData.img_url || '',
-            gratis: menuData.gratis || '',
-            ukuran: menuData.ukuran || [],
-            addon: menuData.addon || [],
-            habis: menuData.habis || false
-        };
-
-        const { data, error } = await supabaseClient
-            .from('menu_custom')
-            .upsert([payload])
-            .select();
-
-        if (error) {
-            console.error('Error Simpan ke Supabase:', error.message);
-            alert('Gagal menyimpan ke database Supabase: ' + error.message);
-            return false;
-        }
-
-        // Perbarui cache di localStorage lokal
-        let listLokal = getCustomMenus();
-        const formattedMenu = { ...payload, img: payload.img_url };
-        const index = listLokal.findIndex(m => m.id === payload.id);
-
-        if (index >= 0) {
-            listLokal[index] = formattedMenu;
-        } else {
-            listLokal.push(formattedMenu);
-        }
-
-        saveCustomMenus(listLokal);
+        const { error } = await supabaseClient
+            .from(CUSTOM_MENU_TABLE)
+            .upsert(_menuToRow(menu), { onConflict: 'id' });
+        if (error) throw error;
         return true;
-
-    } catch (e) {
-        console.error('Exception saat menyimpan menu custom:', e);
-        alert('Terjadi kesalahan sistem saat menyimpan ke database.');
-        return false;
+    } catch (err) {
+        console.error('Gagal simpan ke Supabase (tersimpan lokal saja):', err.message || err);
+        alert('Menu tersimpan di perangkat ini, tapi gagal sinkron ke database: ' +
+              (err.message || err) + '\nCek tabel menu_custom dan RLS policy-nya (insert/update/delete).');
+        return true;
     }
 }
 
-/**
- * Menghapus menu custom dari Supabase & localStorage berdasarkan ID.
- */
 async function deleteCustomMenuFromSupabase(menuId) {
+    // hapus di cache lokal
+    saveCustomMenus(getCustomMenus().filter(m => String(m.id) !== String(menuId)));
+
+    if (!_sbReady()) return true;
     try {
-        if (typeof supabaseClient !== 'undefined') {
-            const { error } = await supabaseClient
-                .from('menu_custom')
-                .delete()
-                .eq('id', menuId);
-
-            if (error) {
-                console.error('Gagal menghapus dari Supabase:', error.message);
-            }
-        }
-
-        // Hapus dari localStorage lokal
-        let listLokal = getCustomMenus().filter(m => m.id !== menuId);
-        saveCustomMenus(listLokal);
+        const { error } = await supabaseClient
+            .from(CUSTOM_MENU_TABLE)
+            .delete()
+            .eq('id', String(menuId));
+        if (error) throw error;
         return true;
-    } catch (e) {
-        console.error('Exception saat menghapus menu custom:', e);
+    } catch (err) {
+        console.error('Gagal hapus di Supabase:', err.message || err);
         return false;
     }
 }
