@@ -52,7 +52,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     checkAuth();
 
-    // Sinkronkan data menu custom dari Supabase
     if (typeof getCustomMenusFromSupabase === 'function') {
         await getCustomMenusFromSupabase();
     }
@@ -197,7 +196,12 @@ async function renderCurrentSection(force = false) {
     if (currentSec === 'dashboard') renderStokMenu();
     else if (currentSec === 'pembayaran') renderPembayaran(semuaPesanan, force);
     else if (currentSec === 'pantau') renderKitchenDisplay(semuaPesanan, riwayat);
-    else if (currentSec === 'menu') { if (force && typeof renderMenuTambahan === 'function') renderMenuTambahan(); }
+    else if (currentSec === 'menu') {
+        if (typeof getCustomMenusFromSupabase === 'function') {
+            await getCustomMenusFromSupabase();
+        }
+        renderMenuTambahan();
+    }
     else if (currentSec === 'riwayat') renderRiwayat(riwayat);
 }
 
@@ -657,25 +661,102 @@ function cetakStrukLangsung(order) {
 }
 
 // ==========================================
-// 6. MENU TAMBAHAN & HELPER
+// 6. RENDER MENU TAMBAHAN (SABANGDOR POS)
 // ==========================================
-function mtKompresGambar(file, maxSize = 500, quality = 0.75) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = reject;
-        reader.onload = () => {
-            const img = new Image();
-            img.onerror = reject;
-            img.onload = () => {
-                const skala = Math.min(1, maxSize / Math.max(img.width, img.height));
-                const canvas = document.createElement('canvas');
-                canvas.width = Math.round(img.width * skala);
-                canvas.height = Math.round(img.height * skala);
-                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.src = reader.result;
-        };
-        reader.readAsDataURL(file);
-    });
+function renderMenuTambahan() {
+    let secEl = document.getElementById('sec-menu');
+    if (!secEl) return;
+
+    let customList = typeof getCustomMenus === 'function' ? getCustomMenus() : [];
+
+    let listHtml = '';
+    if (customList.length === 0) {
+        listHtml = `<div class="empty-info" style="margin-top:12px;">Belum ada menu custom tambahan.</div>`;
+    } else {
+        listHtml = customList.map(item => {
+            const hargaMin = typeof hargaMulai === 'function' ? hargaMulai(item) : (item.harga || 0);
+            return `
+                <div class="stok-card" style="margin-top:10px;">
+                    <div class="stok-left">
+                        <img src="${item.img || item.img_url || DEFAULT_MENU_IMG}" class="stok-thumb" alt="${item.nama}">
+                        <div>
+                            <div class="stok-name"><b>${item.nama}</b></div>
+                            <small style="color:var(--text-muted);">${item.kategori || 'Umum'} • Rp${Number(hargaMin).toLocaleString('id-ID')}</small>
+                        </div>
+                    </div>
+                    <button class="btn-outline-merchant" style="color:#E11D48; border-color:#E11D48;" onclick="hapusMenuCustom('${item.id}')">Hapus</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    secEl.innerHTML = `
+        <div class="card">
+            <div class="card-title">➕ Tambah Menu Baru</div>
+            <div class="card-sub">Formulir tambah produk/varian custom ke katalog</div>
+            
+            <form id="formTambahMenuCustom" onsubmit="handleSimpanMenuCustom(event)" style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
+                <input type="text" id="mtNama" placeholder="Nama Menu (misal: Bakpao Cokelat)" required style="padding:10px; border:1px solid #CBD5E1; border-radius:8px; width:100%;">
+                
+                <select id="mtKategori" style="padding:10px; border:1px solid #CBD5E1; border-radius:8px; width:100%;">
+                    <option value="Dimsum Mentai">Dimsum Mentai</option>
+                    <option value="Dimsum aja">Dimsum aja</option>
+                    <option value="Bakpao">Bakpao</option>
+                </select>
+
+                <input type="number" id="mtHarga" placeholder="Harga Satuan (Rp)" required style="padding:10px; border:1px solid #CBD5E1; border-radius:8px; width:100%;">
+                
+                <input type="text" id="mtDeskripsi" placeholder="Deskripsi Singkat (opsional)" style="padding:10px; border:1px solid #CBD5E1; border-radius:8px; width:100%;">
+
+                <button type="submit" class="btn-primary-merchant" style="width:100%; justify-content:center;">Simpan Menu ke Supabase</button>
+            </form>
+        </div>
+
+        <div class="card-title" style="margin-top:16px;">Daftar Menu Custom Terpasang</div>
+        ${listHtml}
+    `;
+}
+
+async function handleSimpanMenuCustom(e) {
+    e.preventDefault();
+
+    const nama = document.getElementById('mtNama').value.trim();
+    const kategori = document.getElementById('mtKategori').value;
+    const harga = Number(document.getElementById('mtHarga').value) || 0;
+    const deskripsi = document.getElementById('mtDeskripsi').value.trim();
+
+    if (!nama || harga <= 0) {
+        alert("Nama menu dan harga harus diisi dengan benar.");
+        return;
+    }
+
+    const newMenu = {
+        id: 'custom-' + Date.now(),
+        nama: nama,
+        kategori: kategori,
+        harga: harga,
+        ukuran: [{ nama: 'S', harga: harga }],
+        deskripsi: deskripsi,
+        img: 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80'
+    };
+
+    if (typeof saveCustomMenuToSupabase === 'function') {
+        const ok = await saveCustomMenuToSupabase(newMenu);
+        if (ok) {
+            alert("Menu berhasil ditambahkan!");
+            renderMenuTambahan();
+        }
+    } else {
+        alert("Fungsi saveCustomMenuToSupabase tidak ditemukan.");
+    }
+}
+
+async function hapusMenuCustom(menuId) {
+    if (!confirm("Apakah Anda yakin ingin menghapus menu ini?")) return;
+
+    if (typeof deleteCustomMenuFromSupabase === 'function') {
+        await deleteCustomMenuFromSupabase(menuId);
+        alert("Menu berhasil dihapus.");
+        renderMenuTambahan();
+    }
 }
