@@ -595,7 +595,7 @@ function cetakStrukLangsung(order) {
             <meta charset="utf-8">
             <title>Struk #${order.idOrder}</title>
             <style>
-                @page { size: 58mm auto; margin: 0; }
+                @page { size: 58mm; margin: 0; }
                 body {
                     font-family: 'Courier New', Courier, monospace;
                     width: 48mm;
