@@ -22,11 +22,11 @@ async function checkAuth() {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) {
-            window.location.href = '../login-pegawai.html';
+            window.location.href = 'login-pegawai.html';
         }
     } catch (err) {
         console.error("Gagal memeriksa autentikasi:", err);
-        window.location.href = '../login-pegawai.html';
+        window.location.href = 'login-pegawai.html';
     }
 }
 
@@ -36,10 +36,10 @@ async function handleLogout() {
             await supabaseClient.auth.signOut();
         }
         localStorage.removeItem('pegawai_session');
-        window.location.href = '../login-pegawai.html';
+        window.location.href = 'login-pegawai.html';
     } catch (err) {
         console.error('Logout error:', err);
-        window.location.href = '../login-pegawai.html';
+        window.location.href = 'login-pegawai.html';
     }
 }
 
@@ -375,7 +375,7 @@ async function konfirmasiPembayaran(dbIdOrder) {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) {
             alert("Session pegawai berakhir. Silakan login kembali.");
-            window.location.href = '../login-pegawai.html';
+            window.location.href = 'login-pegawai.html';
             return;
         }
 
@@ -467,7 +467,7 @@ async function tandaiSelesaiDapur(dbIdOrder) {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) {
-            window.location.href = '../login-pegawai.html';
+            window.location.href = 'login-pegawai.html';
             return;
         }
 
