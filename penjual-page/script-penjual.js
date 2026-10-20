@@ -1078,3 +1078,538 @@ async function hapusMenuCustom(menuId) {
         }
     }
 }
+
+// ==========================================
+// FITUR BUKA / TUTUP TOKO (HEADER)
+// ==========================================
+function cekStatusTokoAktif() {
+    return localStorage.getItem('sabangdor_status_toko') !== 'tutup';
+}
+
+function toggleStatusToko() {
+    const sedangBuka = cekStatusTokoAktif();
+    const statusBaru = sedangBuka ? 'tutup' : 'buka';
+    
+    localStorage.setItem('sabangdor_status_toko', statusBaru);
+    updateUIStatusToko();
+}
+
+function updateUIStatusToko() {
+    const btn = document.getElementById('btn-toggle-toko');
+    if (!btn) return;
+
+    const bimbinganBuka = cekStatusTokoAktif();
+
+    if (bimbinganBuka) {
+        btn.className = 'btn-toggle-stok ready';
+        btn.innerText = '🟢 TOKO BUKA';
+    } else {
+        btn.className = 'btn-toggle-stok empty';
+        btn.innerText = '🔴 TOKO TUTUP';
+    }
+}
+
+// Inisialisasi status tombol saat pertama kali dimuat
+document.addEventListener('DOMContentLoaded', () => {
+    updateUIStatusToko();
+});
+
+// ==========================================
+// FITUR INPUT PESANAN MANUAL (POS KASIR INTERAKTIF)
+// ==========================================
+let kasirCart = [];
+let kasirSelectedMenu = null;
+let kasirActiveSize = null;
+let kasirActiveAddons = [];
+
+function bukaModalKasirOrder() {
+    kasirCart = [];
+    document.getElementById('kasirNamaPelanggan').value = '';
+    document.getElementById('kasirUangDiterima').value = '';
+    document.getElementById('kasirKembalianTxt').style.display = 'none';
+    document.getElementById('kasirMsg').className = 'mt-msg';
+    
+    isiDropdownMenuKasirInteractive();
+    renderKasirCartList();
+    onChangeKasirMetodeBayar();
+
+    const modal = document.getElementById('modalKasirOrder');
+    if (modal) modal.style.display = 'flex';
+}
+
+function tutupModalKasirOrder() {
+    const modal = document.getElementById('modalKasirOrder');
+    if (modal) modal.style.display = 'none';
+}
+
+// Daftar master menu lengkap dengan struktur ukuran & addon bawaannya
+const masterMenuStruktur = [
+    {
+        id: 'mentai-ori', nama: 'Mentai Ori', kategori: 'Dimsum Mentai',
+        ukuran: [
+            { nama: 'S', porsi: '3 pcs', harga: 13000 },
+            { nama: 'M', porsi: '6 pcs', harga: 23000 },
+            { nama: 'XL', porsi: '16 pcs', harga: 60000 }
+        ],
+        addon: [ { nama: 'Extra Mentai', harga: 3000 }, { nama: 'Chilli Oil tambahan', harga: 3000 } ]
+    },
+    {
+        id: 'mentai-cheese', nama: 'Mentai Cheese', kategori: 'Dimsum Mentai',
+        ukuran: [
+            { nama: 'S', porsi: '3 pcs', harga: 15000 },
+            { nama: 'M', porsi: '6 pcs', harga: 26000 },
+            { nama: 'XL', porsi: '16 pcs', harga: 67000 }
+        ],
+        addon: [ { nama: 'Extra Mentai', harga: 3000 }, { nama: 'Chilli Oil tambahan', harga: 3000 } ]
+    },
+    {
+        id: 'mentai-tanuki', nama: 'Mentai Tanuki', kategori: 'Dimsum Mentai',
+        ukuran: [
+            { nama: 'S', porsi: '3 pcs', harga: 15000 },
+            { nama: 'M', porsi: '6 pcs', harga: 26000 },
+            { nama: 'XL', porsi: '16 pcs', harga: 67000 }
+        ],
+        addon: [ { nama: 'Extra Mentai', harga: 3000 }, { nama: 'Chilli Oil tambahan', harga: 3000 } ]
+    },
+    {
+        id: 'mentai-mix', nama: 'Mentai Mix', kategori: 'Dimsum Mentai',
+        ukuran: [
+            { nama: 'M', porsi: '6 pcs', harga: 26000 },
+            { nama: 'XL', porsi: '16 pcs', harga: 67000 }
+        ],
+        addon: [ { nama: 'Extra Mentai', harga: 3000 }, { nama: 'Chilli Oil tambahan', harga: 3000 } ]
+    },
+    {
+        id: 'dimsum-aja', nama: 'Dimsum aja', kategori: 'Dimsum aja',
+        ukuran: [
+            { nama: 'S', porsi: '3 pcs', harga: 10000 },
+            { nama: 'M', porsi: '6 pcs', harga: 18000 },
+            { nama: 'XL', porsi: '16 pcs', harga: 47000 }
+        ],
+        addon: [ { nama: 'Chilli Oil tambahan', harga: 3000 } ]
+    },
+    {
+        id: 'bakpao', nama: 'Bakpao', kategori: 'Bakpao',
+        ukuran: [
+            { nama: '1 pcs', porsi: '1 pcs', harga: 7000 },
+            { nama: '3 pcs', porsi: '3 pcs', harga: 20000 },
+            { nama: '6 pcs', porsi: '6 pcs', harga: 36000 }
+        ],
+        addon: []
+    }
+];
+
+function isiDropdownMenuKasirInteractive() {
+    const select = document.getElementById('kasirPilihMenu');
+    if (!select) return;
+
+    // Gabungkan master menu + menu custom dari kasir
+    let semuaMenu = [...masterMenuStruktur];
+    const customList = typeof getCustomMenus === 'function' ? getCustomMenus() : [];
+    
+    customList.forEach(c => {
+        if (!c.habis) {
+            semuaMenu.push({
+                id: c.id,
+                nama: c.nama,
+                kategori: c.kategori || 'Custom',
+                ukuran: Array.isArray(c.ukuran) && c.ukuran.length > 0 ? c.ukuran : [{ nama: 'Reguler', porsi: '1 porsi', harga: c.harga || 10000 }],
+                addon: Array.isArray(c.addon) ? c.addon : []
+            });
+        }
+    });
+
+    select.dataset.menuCollection = JSON.stringify(semuaMenu);
+    select.innerHTML = semuaMenu.map((m, idx) => `<option value="${idx}">${m.nama}</option>`).join('');
+
+    onKasirMenuChange();
+}
+
+function onKasirMenuChange() {
+    const select = document.getElementById('kasirPilihMenu');
+    if (!select || !select.dataset.menuCollection) return;
+
+    const collection = JSON.parse(select.dataset.menuCollection);
+    kasirSelectedMenu = collection[select.value];
+    if (!kasirSelectedMenu) return;
+
+    const ukuranContainer = document.getElementById('kasirUkuranContainer');
+    const addonContainer = document.getElementById('kasirAddonContainer');
+
+    // KHUSUS MENU BAKPAO (Pilih Varian & Jumlah per Varian)
+    if (kasirSelectedMenu.id === 'bakpao') {
+        kasirActiveSize = { nama: 'Paket Bakpao', porsi: 'custom', harga: 0 };
+        
+        const varianBakpao = ['Salted Egg', 'Kacang Tanah', 'Ayam Casio', 'Coklat Lumer', 'Keju Susu'];
+        
+        ukuranContainer.innerHTML = `
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted);">Atur jumlah tiap varian bakpao (Otomatis dihitung paket hemat: 1 pcs Rp7rb, 3 pcs Rp20rb, 6 pcs Rp36rb):</span>
+                <div id="bakpaoVariantList" style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                    ${varianBakpao.map(v => `
+                        <div class="bakpao-var-row" data-varian="${v}" style="display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-line);">
+                            <span style="font-size: 0.85rem; font-weight: 700;">${v}</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" class="mt-btn-x" onclick="ubahQtyBakpaoKasir('${v}', -1)">-</button>
+                                <span class="bakpao-qty-val" id="b_qty_${v}" style="font-weight: 800; min-width: 20px; text-align: center;">0</span>
+                                <button type="button" class="mt-btn-x" style="background: var(--red-tint); color: var(--primary-red);" onclick="ubahQtyBakpaoKasir('${v}', 1)">+</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        addonContainer.innerHTML = `<span style="font-size: 11px; color: var(--text-muted);">Tidak ada tambahan opsional untuk bakpao.</span>`;
+        kasirActiveAddons = [];
+        return;
+    }
+
+    // ----------------------------------------------------
+    // UNTUK MENU LAINNYA (Mentai, Dimsum Aja, Custom Menu)
+    // ----------------------------------------------------
+    if (kasirSelectedMenu.ukuran && kasirSelectedMenu.ukuran.length > 0) {
+        kasirActiveSize = kasirSelectedMenu.ukuran[0];
+        ukuranContainer.innerHTML = kasirSelectedMenu.ukuran.map((u, idx) => `
+            <button type="button" class="btn-outline-merchant size-chip ${idx === 0 ? 'active-chip' : ''}" 
+                onclick="pilihUkuranKasir('${u.nama}')" style="flex: 1; padding: 8px; font-size: 0.8rem;">
+                <b>${u.nama}</b><br><small>${u.porsi || ''} - Rp${Number(u.harga).toLocaleString('id-ID')}</small>
+            </button>
+        `).join('');
+    } else {
+        kasirActiveSize = { nama: 'Reguler', porsi: '1 porsi', harga: 0 };
+        ukuranContainer.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">Tidak ada pilihan ukuran.</span>`;
+    }
+
+    // Render Tambahan Opsional (Checkbox) untuk menu selain bakpao
+    if (kasirSelectedMenu.addon && kasirSelectedMenu.addon.length > 0) {
+        kasirActiveAddons = [];
+        addonContainer.innerHTML = kasirSelectedMenu.addon.map((a, idx) => `
+            <label style="display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-line); font-size: 0.85rem; cursor: pointer;">
+                <span>${a.name || a.nama} (+Rp${Number(a.harga).toLocaleString('id-ID')})</span>
+                <input type="checkbox" class="kasir-addon-checkbox" value="${idx}" onchange="updateKasirAddonSelection()">
+            </label>
+        `).join('');
+    } else {
+        addonContainer.innerHTML = `<span style="font-size: 11px; color: var(--text-muted);">Tidak ada tambahan opsional untuk menu ini.</span>`;
+    }
+}
+
+// State penampung jumlah bakpao yang dipilih di modal kasir
+let kasirBakpaoQtyMap = { 'Salted Egg': 0, 'Kacang Tanah': 0, 'Ayam Casio': 0, 'Coklat Lumer': 0, 'Keju Susu': 0 };
+
+function ubahQtyBakpaoKasir(varian, delta) {
+    kasirBakpaoQtyMap[varian] = Math.max(0, (kasirBakpaoQtyMap[varian] || 0) + delta);
+    const el = document.getElementById(`b_qty_${varian}`);
+    if (el) el.innerText = kasirBakpaoQtyMap[varian];
+}
+
+// Algoritma harga paket hemat bakpao (1 pcs: 7rb, 3 pcs: 20rb, 6 pcs: 36rb)
+function hitungHargaBakpaoKasir(totalPcs) {
+    const PACKS = [{ pcs: 6, price: 36000 }, { pcs: 3, price: 20000 }, { pcs: 1, price: 7000 }];
+    const cost = [0];
+    const choice = [null];
+    for (let i = 1; i <= totalPcs; i++) {
+        cost[i] = Infinity;
+        PACKS.forEach(p => {
+            if (i >= p.pcs && cost[i - p.pcs] + p.price < cost[i]) {
+                cost[i] = cost[i - p.pcs] + p.price;
+                choice[i] = p;
+            }
+        });
+    }
+    return cost[totalPcs] || (totalPcs * 7000);
+}
+
+function pilihUkuranKasir(namaUkuran) {
+    if (!kasirSelectedMenu) return;
+    kasirActiveSize = kasirSelectedMenu.ukuran.find(u => u.nama === namaUkuran);
+
+    // Styling aktif pada chip ukuran
+    document.querySelectorAll('.size-chip').forEach(btn => {
+        if (btn.innerText.includes(namaUkuran)) {
+            btn.style.borderColor = 'var(--primary-red)';
+            btn.style.background = 'var(--red-tint)';
+        } else {
+            btn.style.borderColor = 'var(--border-line)';
+            btn.style.background = '#FFF';
+        }
+    });
+}
+
+function updateKasirAddonSelection() {
+    kasirActiveAddons = [];
+    document.querySelectorAll('.kasir-addon-checkbox:checked').forEach(cb => {
+        const addonObj = kasirSelectedMenu.addon[cb.value];
+        if (addonObj) {
+            kasirActiveAddons.push({
+                nama: addonObj.name || addonObj.nama,
+                harga: Number(addonObj.harga) || 0
+            });
+        }
+    });
+}
+
+function tambahItemKeKasirCartCustom() {
+    if (!kasirSelectedMenu) return;
+
+    // JIKA MENU BAKPAO
+    if (kasirSelectedMenu.id === 'bakpao') {
+        const pickedVarians = Object.keys(kasirBakpaoQtyMap).filter(v => kasirBakpaoQtyMap[v] > 0);
+        const totalPcs = pickedVarians.reduce((sum, v) => sum + kasirBakpaoQtyMap[v], 0);
+
+        if (totalPcs === 0) {
+            alert('Pilih minimal 1 pcs bakpao!');
+            return;
+        }
+
+        const hargaTotalBakpao = hitungHargaBakpaoKasir(totalPcs);
+        const varianDetail = pickedVarians.map(v => `${kasirBakpaoQtyMap[v]}x ${v}`).join(', ');
+        const qtyPorsi = parseInt(document.getElementById('kasirQtyItem').value, 10) || 1;
+
+        const subtotalFinal = hargaTotalBakpao * qtyPorsi;
+        const varianFinal = `${totalPcs} pcs: ${varianDetail}`;
+
+        kasirCart.push({
+            namaMenu: 'Bakpao',
+            namaItemDb: 'Bakpao',
+            varian: varianFinal,
+            hargaSatuan: hargaTotalBakpao,
+            qty: qtyPorsi,
+            subtotal: subtotalFinal
+        });
+
+        // Reset hitungan bakpao
+        Object.keys(kasirBakpaoQtyMap).forEach(v => {
+            kasirBakpaoQtyMap[v] = 0;
+            const el = document.getElementById(`b_qty_${v}`);
+            if (el) el.innerText = '0';
+        });
+        document.getElementById('kasirQtyItem').value = 1;
+        renderKasirCartList();
+        return;
+    }
+
+    // ----------------------------------------------------
+    // UNTUK MENU LAINNYA (Mentai, Dimsum Aja, Custom Menu)
+    // ----------------------------------------------------
+    if (!kasirActiveSize) return;
+
+    const qty = parseInt(document.getElementById('kasirQtyItem').value, 10) || 1;
+    let hargaSatuan = Number(kasirActiveSize.harga) || 0;
+    
+    let addonTextDetail = '';
+    let totalAddonHarga = 0;
+    if (kasirActiveAddons.length > 0) {
+        const addonNames = kasirActiveAddons.map(a => a.nama);
+        totalAddonHarga = kasirActiveAddons.reduce((sum, a) => sum + a.harga, 0);
+        addonTextDetail = ` + ${addonNames.join(', ')}`;
+    }
+
+    const hargaTotalPerItem = (hargaSatuan + totalAddonHarga) * qty;
+    const varianFinal = `${kasirActiveSize.nama} (${kasirActiveSize.porsi || '1 porsi'})${addonTextDetail}`;
+
+    const existingIdx = kasirCart.findIndex(i => i.namaMenu === kasirSelectedMenu.nama && i.varian === varianFinal);
+    if (existingIdx > -1) {
+        kasirCart[existingIdx].qty += qty;
+        kasirCart[existingIdx].subtotal += hargaTotalPerItem;
+    } else {
+        kasirCart.push({
+            namaMenu: kasirSelectedMenu.nama,
+            namaItemDb: kasirSelectedMenu.nama,
+            varian: varianFinal,
+            hargaSatuan: hargaSatuan + totalAddonHarga,
+            qty: qty,
+            subtotal: hargaTotalPerItem
+        });
+    }
+
+    document.getElementById('kasirQtyItem').value = 1;
+    renderKasirCartList();
+}
+
+function hapusKasirCartItem(index) {
+    kasirCart.splice(index, 1);
+    renderKasirCartList();
+}
+
+function renderKasirCartList() {
+    const container = document.getElementById('kasirCartList');
+    const totalTxt = document.getElementById('kasirTotalHargaTxt');
+    if (!container) return;
+
+    if (kasirCart.length === 0) {
+        container.innerHTML = `<li style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:8px;">Belum ada item dipilih.</li>`;
+        if (totalTxt) totalTxt.innerText = 'Rp0';
+        return;
+    }
+
+    let grandTotal = 0;
+    container.innerHTML = kasirCart.map((item, idx) => {
+        grandTotal += item.subtotal;
+        return `
+            <li class="order-item-row" style="align-items:center;">
+                <div>
+                    <b>${item.qty}x</b> ${item.namaMenu} <small style="color:var(--text-muted);">(${item.varian})</small>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Rp${item.hargaSatuan.toLocaleString('id-ID')} / porsi</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <b>Rp${item.subtotal.toLocaleString('id-ID')}</b>
+                    <button type="button" class="mt-btn-x" onclick="hapusKasirCartItem(${idx})">✕</button>
+                </div>
+            </li>
+        `;
+    }).join('');
+
+    if (totalTxt) totalTxt.innerText = `Rp${grandTotal.toLocaleString('id-ID')}`;
+    hitungKembalianKasirDirect();
+}
+
+function onChangeKasirMetodeBayar() {
+    const metode = document.getElementById('kasirMetodeBayar').value;
+    const boxTunai = document.getElementById('kasirBoxTunai');
+    if (boxTunai) {
+        boxTunai.style.display = metode === 'TUNAI' ? 'block' : 'none';
+    }
+}
+
+function hitungKembalianKasirDirect() {
+    const totalTagihan = kasirCart.reduce((sum, i) => sum + i.subtotal, 0);
+    const valTunai = Number(document.getElementById('kasirUangDiterima').value) || 0;
+    const boxKembalian = document.getElementById('kasirKembalianTxt');
+
+    if (!boxKembalian) return;
+
+    if (valTunai >= totalTagihan && totalTagihan > 0) {
+        boxKembalian.style.display = 'block';
+        boxKembalian.style.color = 'var(--green-text)';
+        boxKembalian.innerText = `Kembalian: Rp${(valTunai - totalTagihan).toLocaleString('id-ID')}`;
+    } else if (valTunai > 0 && valTunai < totalTagihan) {
+        boxKembalian.style.display = 'block';
+        boxKembalian.style.color = 'var(--primary-red)';
+        boxKembalian.innerText = `Kurang: Rp${(totalTagihan - valTunai).toLocaleString('id-ID')}`;
+    } else {
+        boxKembalian.style.display = 'none';
+    }
+}
+
+async function prosesSimpanPesananKasir() {
+    const msgBox = document.getElementById('kasirMsg');
+    const namaPelangganInput = document.getElementById('kasirNamaPelanggan').value.trim();
+    const sumberPesanan = document.getElementById('kasirSumberPesanan').value;
+    const metodeBayar = document.getElementById('kasirMetodeBayar').value;
+    const totalHarga = kasirCart.reduce((sum, i) => sum + i.subtotal, 0);
+
+    if (kasirCart.length === 0) {
+        msgBox.textContent = 'Pilih minimal 1 item pesanan!';
+        msgBox.className = 'mt-msg show error';
+        return;
+    }
+
+    const namaPelanggan = namaPelangganInput || `${sumberPesanan}`;
+    let statusPembayaranDb = 'lunas';
+    let statusPesananDb = 'disiapkan';
+    let tipeBayarFinal = 'cash';
+
+    if (metodeBayar === 'TUNAI') {
+        tipeBayarFinal = 'cash';
+        const valTunai = Number(document.getElementById('kasirUangDiterima').value) || 0;
+        if (valTunai < totalHarga) {
+            msgBox.textContent = 'Nominal pembayaran tunai masih kurang!';
+            msgBox.className = 'mt-msg show error';
+            return;
+        }
+    } else if (metodeBayar === 'QRIS') {
+        tipeBayarFinal = 'qris';
+    } else {
+        tipeBayarFinal = 'online'; // Untuk GoFood/GrabFood/ShopeeFood yang sudah lunas via aplikasi
+    }
+
+    const btnSimpan = document.getElementById('btnProsesKasirOrder');
+    if (btnSimpan) btnSimpan.disabled = true;
+
+    try {
+        if (typeof supabaseClient === 'undefined') {
+            alert('Supabase client tidak ditemukan!');
+            return;
+        }
+
+        // 1. Ambil Nomor Antrean Terakhir
+        const { data: lastOrder } = await supabaseClient
+            .from('orders')
+            .select('nomor_antrean')
+            .order('id_order', { ascending: false })
+            .limit(1);
+
+        const nextAntrean = (lastOrder && lastOrder.length > 0) ? (Number(lastOrder[0].nomor_antrean) || 0) + 1 : 1;
+
+        // 2. Simpan ke tabel `orders`
+        const { data: orderData, error: orderErr } = await supabaseClient
+            .from('orders')
+            .insert([{
+                nomor_antrean: nextAntrean,
+                nama_pembeli: `[${sumberPesanan}] ${namaPelanggan}`,
+                tipe_pembayaran: tipeBayarFinal,
+                status_pembayaran: statusPembayaranDb,
+                status_pesanan: statusPesananDb,
+                total_harga: totalHarga
+            }])
+            .select();
+
+        if (orderErr || !orderData || orderData.length === 0) {
+            throw new Error(orderErr ? orderErr.message : 'Gagal menyimpan header order');
+        }
+
+        const newOrderId = orderData[0].id_order;
+
+        // 3. Simpan ke tabel `order_items`
+        const itemsToInsert = kasirCart.map(item => ({
+            id_order: newOrderId,
+            nama_item: item.namaItemDb,
+            varian: item.varian,
+            catatan: `POS Manual (${sumberPesanan})`,
+            jumlah: item.qty,
+            harga_satuan: item.hargaSatuan,
+            subtotal: item.subtotal
+        }));
+
+        const { error: itemsErr } = await supabaseClient
+            .from('order_items')
+            .insert(itemsToInsert);
+
+        if (itemsErr) {
+            throw new Error(itemsErr.message);
+        }
+
+        tutupModalKasirOrder();
+        await renderCurrentSection(true);
+
+        const createdOrderObj = {
+            db_id_order: newOrderId,
+            idOrder: `ANT-${String(nextAntrean).padStart(2, '0')}`,
+            namaPelanggan: `[${sumberPesanan}] ${namaPelanggan}`,
+            metodeBayar: metodeBayar,
+            totalHarga: totalHarga,
+            totalHargaFormatted: `Rp${totalHarga.toLocaleString('id-ID')}`,
+            waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+            tanggal: new Date().toLocaleDateString('id-ID'),
+            items: kasirCart.map(i => ({
+                nama: i.namaItemDb,
+                varian: i.varian,
+                qty: i.qty,
+                totalHargaItem: i.subtotal
+            }))
+        };
+
+        if (confirm("Pesanan berhasil disimpan & dikirim ke Dapur!\nApakah Anda ingin mencetak struk sekarang?")) {
+            cetakStrukLangsung(createdOrderObj);
+        }
+
+    } catch (err) {
+        console.error("Gagal menyimpan pesanan manual:", err);
+        msgBox.textContent = "Error: " + err.message;
+        msgBox.className = 'mt-msg show error';
+    } finally {
+        if (btnSimpan) btnSimpan.disabled = false;
+    }
+}

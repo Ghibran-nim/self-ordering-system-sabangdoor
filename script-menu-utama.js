@@ -31,6 +31,10 @@ window.addEventListener('DOMContentLoaded', () => {
     initStaffTrigger();
     initRuangPopupKeranjang();
 
+    // Cek status operasional toko
+    cekDanTerapkanStatusToko();
+    setInterval(cekDanTerapkanStatusToko, 2000); // Cek otomatis secara berkala
+
     // Ambil menu custom terbaru dari Supabase, lalu cek ulang tiap 5 detik
     // supaya status HABIS dari kasir cepat muncul di HP pembeli.
     segarkanMenuCustom(true);
@@ -379,5 +383,88 @@ function renderMenuCustom() {
         navBar.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
         if (firstTab) firstTab.classList.add('active');
         if (firstSec) firstSec.classList.add('active');
+    }
+}
+
+// Listener real-time instan antar-tab browser (Dashboard Kasir <-> Index)
+window.addEventListener('storage', (e) => {
+    if (e.key === 'sabangdor_menu_status') {
+        updateTampilanStokPembeli();
+    }
+    if (e.key === CUSTOM_MENU_KEY) {
+        renderMenuCustom();
+        updateTampilanStokPembeli();
+    }
+    // Deteksi real-time perubahan status buka/tutup toko
+    if (e.key === 'sabangdor_status_toko') {
+        cekDanTerapkanStatusToko();
+    }
+});
+
+// Fungsi Pengecekan & Penguncian Toko Tutup
+function cekDanTerapkanStatusToko() {
+    const statusToko = localStorage.getItem('sabangdor_status_toko');
+    const isTutup = statusToko === 'tutup';
+
+    let bannerTutup = document.getElementById('banner-toko-tutup');
+
+    if (isTutup) {
+        // 1. Matikan semua tombol "+ Pilih menu"
+        document.querySelectorAll('.btn-pilih').forEach(btn => {
+            btn.innerText = 'Toko Tutup';
+            btn.style.backgroundColor = '#94A3B8';
+            btn.style.color = '#FFFFFF';
+            btn.style.pointerEvents = 'none';
+            btn.removeAttribute('href');
+        });
+
+        // 2. Sembunyikan & Kunci Popup Keranjang + Tombol "Cek Keranjang"
+        const cartPopup = document.getElementById('cart-popup');
+        const btnCekKeranjang = document.querySelector('.btn-cek-keranjang');
+        
+        if (cartPopup) {
+            cartPopup.classList.remove('show-smooth');
+            cartPopup.classList.add('hidden');
+        }
+        if (btnCekKeranjang) {
+            btnCekKeranjang.disabled = true;
+            btnCekKeranjang.style.pointerEvents = 'none';
+            btnCekKeranjang.style.backgroundColor = '#94A3B8';
+            btnCekKeranjang.innerText = 'Toko Tutup';
+        }
+
+        // 3. Tampilkan Banner Toko Tutup
+        if (!bannerTutup) {
+            const container = document.querySelector('.mobile-container');
+            if (container) {
+                bannerTutup = document.createElement('div');
+                bannerTutup.id = 'banner-toko-tutup';
+                bannerTutup.style.cssText = 'background: #FEF2F2; border: 1px solid #E11D48; color: #E11D48; padding: 12px; border-radius: 12px; text-align: center; font-weight: 700; margin-bottom: 16px; font-size: 13px;';
+                bannerTutup.innerText = '🔴 Mohon Maaf, Toko Saat Ini Sedang Tutup & Belum Menerima Pesanan.';
+                
+                const headerTitle = document.getElementById('staff-trigger');
+                if (headerTitle && headerTitle.nextSibling) {
+                    container.insertBefore(bannerTutup, headerTitle.nextSibling);
+                } else {
+                    container.insertBefore(bannerTutup, container.firstChild);
+                }
+            }
+        }
+    } else {
+        // Jika Toko BUKA Kembali
+        if (bannerTutup) {
+            bannerTutup.remove();
+        }
+
+        const btnCekKeranjang = document.querySelector('.btn-cek-keranjang');
+        if (btnCekKeranjang) {
+            btnCekKeranjang.disabled = false;
+            btnCekKeranjang.style.pointerEvents = 'auto';
+            btnCekKeranjang.style.backgroundColor = '';
+            btnCekKeranjang.innerText = 'Cek Keranjang';
+        }
+
+        updateTampilanStokPembeli();
+        renderPopupKeranjang();
     }
 }

@@ -171,5 +171,11 @@ function showToast(text) {
     toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
 }
 
+// Tambahkan di awal skrip halaman keranjang.html
+if (localStorage.getItem('sabangdor_status_toko') === 'tutup') {
+    alert("Mohon maaf, toko saat ini sedang TUTUP. Anda akan diarahkan kembali ke halaman utama.");
+    window.location.href = 'index.html';
+}
+
 // ===== Inisialisasi Awal =====
 render();
